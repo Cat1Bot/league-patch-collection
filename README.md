@@ -9,8 +9,6 @@
 
 **League Patch Collection** is a lightweight C# application designed for Windows to enhance your League of Legends experience. This tool introduces several quality-of-life features and optimizations League Client experience. See command line arguments additional options.
 
->  Unlike most third party tools, this app does NOT use the Riot Client or LCU api. Instead it hooks into backend protocals like XMPP (chat), Websocket (RMS) and https (Ledge).
-
 ## Features
 
 By default, this app provides the following enhancements:
