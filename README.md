@@ -12,7 +12,7 @@
 ## Features
 
 By default, this app provides the following enhancements:
-- :white_check_mark: **Chat Restriction Bypass**: Allows you to use champion select and post-game chat even if you are blocked due to having Honor Level 1.
+- :white_check_mark: **Dodge Button**: Exit champ select without having to close client (you still get dodge timer though).
 - :white_check_mark: **Vanguard Disabler**: Access full functionality of the League Client and use Kbot without risk of being banned. Usefull if you want to safely debug the client.
 - :white_check_mark: **Disable Store**: Greys out store button and prevents popups and nags related to in-game purchases.
 - :white_check_mark: **Legacy Honor**: Restores the old post game honor screen pre patch 14.19 where you can only only one teammate. Honoring enemies is cringe.
@@ -22,7 +22,7 @@ By default, this app provides the following enhancements:
 - :white_check_mark: **Hawolt ban bypass**: Proof of concept exploit that may or may not actually work, basically this will block RMS session notifications delaying the amount of time it takes for session to expire. [More info](https://web.archive.org/web/20230628125118/https://twitter.com/hawolt/status/1674029547363217410) about this exploit.
 - :white_check_mark: **Removal of Bloatware**: Removes the Legends of Runeterra (LoR) button, Info Hub and suppresses some behavior warnings (ranked restrictions and so on). Also makes the patch number show in old format (ex: 15.3 instead of 25.S1 fomart). **This also disables Sanctum**.
 - :white_check_mark: **Streamlined Interface**: Eliminates promotions and other unnecessary clutter from the client. 
-- :white_check_mark: **Ban Reason Fix**: Resolves issues where the ban reason doesn't display on certain accounts, fixing the infinite loading/unknown player bug.
+- :white_check_mark: **Ban Reason Checker**: Find out details on why your account was banned (eg. trigger gameId) and duration of penalty.
 - :white_check_mark: **Enhanced Privacy**: Disables all tracking and telemetry services, including Sentry, to reduce tracking and prevent unnecessary background activity.
 - :white_check_mark: **Home Hub Fix**: Fixes home hubs taking longer than usual to load issue.
 - :information_source: **[Coming Soon] Lobby Revealer**: A feature to reveal names in champ select.
