@@ -18,7 +18,7 @@ namespace LeaguePatchCollection
         public async Task RunAsync(CancellationToken token)
         {
             _cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            _listener = new TcpListener(IPAddress.Any, LeagueProxy.RmsPort!);
+            _listener = new TcpListener(IPAddress.Any, LeagueProxy.RmsPort);
             _listener.Start();
 
             try
@@ -43,11 +43,11 @@ namespace LeaguePatchCollection
         private static async Task HandleWebSocketHandshakeAsync(Stream clientStream, Stream serverStream)
         {
             var clientReader = new StreamReader(clientStream, Encoding.ASCII);
-            var clientWriter = new StreamWriter(clientStream, Encoding.ASCII) { AutoFlush = true };
-            var serverWriter = new StreamWriter(serverStream, Encoding.ASCII) { AutoFlush = true };
+            var clientWriter = new StreamWriter(clientStream, Encoding.ASCII) { AutoFlush = true, NewLine = "\r\n" };
+            var serverWriter = new StreamWriter(serverStream, Encoding.ASCII) { AutoFlush = true, NewLine = "\r\n" };
 
             string? requestLine = await clientReader.ReadLineAsync();
-            await serverWriter.WriteLineAsync(requestLine); // Write the request line to the server
+            await serverWriter.WriteLineAsync(requestLine);
 
             while (true)
             {
@@ -70,7 +70,7 @@ namespace LeaguePatchCollection
             var serverReader = new StreamReader(serverStream, Encoding.ASCII);
 
             string? responseLine = await serverReader.ReadLineAsync();
-            Console.WriteLine($"[RMS] {responseLine}");
+            Trace.WriteLine($"[INFO] RMS handshake response: {responseLine}");
             await clientWriter.WriteLineAsync(responseLine ?? string.Empty);
 
             while (true)
@@ -95,7 +95,7 @@ namespace LeaguePatchCollection
                 var sslStream = new SslStream(serverStream, false, (sender, certificate, chain, sslPolicyErrors) => true);
                 await sslStream.AuthenticateAsClientAsync(rmsHost!);
                 serverStream = sslStream;
-                Console.WriteLine("[RMS] Connection to server established.");
+                Trace.WriteLine("[INFO] RMS Connection to server established.");
 
                 await HandleWebSocketHandshakeAsync(client.GetStream(), serverStream);
 
@@ -106,7 +106,7 @@ namespace LeaguePatchCollection
             }
             catch (Exception ex) when (ex is IOException || ex is ObjectDisposedException)
             {
-                Console.WriteLine($"[RMS] Client disconnected or connection error: {ex.Message}");
+                Trace.WriteLine($"[WARN] RMS Client disconnected or connection error: {ex.Message}");
             }
         }
 
@@ -119,7 +119,6 @@ namespace LeaguePatchCollection
             {
                 await destination.WriteAsync(buffer.AsMemory(0, bytesRead), token);
             }
-            Console.WriteLine("[RMS] Client -> Server: Connection closed.");
         }
 
         private static async Task ForwardServerToClientAsync(Stream source, Stream destination, CancellationToken token)
@@ -154,19 +153,17 @@ namespace LeaguePatchCollection
 
                 if (RankedRestriction().IsMatch(decodedMessage))
                 {
-                    continue; // Skip sending this message to the client to block popup about ranked restriction
+                    continue;
                 }
-
-                if (HawoltBypass().IsMatch(decodedMessage))
+                else if (NoClientClose().IsMatch(decodedMessage))
                 {
-                    continue; // big mighty hawolt ban bypass
+                    continue;
                 }
-
-                if (BlockVanguardSessionCheck().IsMatch(decodedMessage))
-                {
-                    Trace.WriteLine("[INFO] ATTEMPING TO BYPASS GAMEFLOW KICK/BLOCK: BLOCKING MESSAING " + decodedMessage);
-                    continue; // Block this message so the client doesnt know gameflow detecting no vanguard session
-                }
+                //else if (BlockVanguardSessionCheck().IsMatch(decodedMessage))
+                //{
+                //    Trace.WriteLine("[INFO] ATTEMPING TO BYPASS GAMEFLOW KICK/BLOCK: BLOCKING MESSAING " + decodedMessage);
+                //    continue; // doesnt work - causes client to hang is champ select forever since this is server sided
+                //} 
                 await destination.WriteAsync(buffer.AsMemory(0, bytesRead), token);
             }
         }
@@ -198,12 +195,11 @@ namespace LeaguePatchCollection
             _listener?.Stop();
         }
 
-        [GeneratedRegex(@"RANKED_RESTRICTION")]
+        [GeneratedRegex(@"RANKED_RESTRICTED")]
         private static partial Regex RankedRestriction();
-        [GeneratedRegex(@"gaps-session-service")]
-        private static partial Regex HawoltBypass();
-        [GeneratedRegex(@"PLAYER_LACKS_VANGUARD_SESSION")]
-        private static partial Regex BlockVanguardSessionCheck();
-
+        [GeneratedRegex(@"GAMEFLOW_EVENT.PLAYER_KICKED.VANGUARD")]
+        private static partial Regex NoClientClose();
+        //[GeneratedRegex(@"PLAYER_LACKS_VANGUARD_SESSION")]
+        //private static partial Regex BlockVanguardSessionCheck();
     }
 }

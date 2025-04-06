@@ -391,6 +391,142 @@ public partial class ConfigProxy
             string payloadStr = Encoding.UTF8.GetString(payload);
             var configObject = JsonSerializer.Deserialize<JsonNode>(payload);
 
+
+            if (configObject?.AsObject().ContainsKey("keystone.products.league_of_legends.patchlines.live") == true)
+            {
+                var injectionJson = @"{
+  ""keystone.products.lion.full_name"": ""2XKO"",
+  ""keystone.products.lion.patchlines.live"": {
+    ""metadata"": {
+      ""arg"": {
+        ""alias"": {
+          ""platforms"": null,
+          ""product_id"": """"
+        },
+        ""default_theme_manifest"": ""https://lion.secure.dyn.riotcdn.net/channels/public/rccontent/theme/manifest.json"",
+        ""full_name"": ""2XKO"",
+        ""theme_manifest"": ""https://lion.secure.dyn.riotcdn.net/channels/public/rccontent/theme/manifest.json""
+      },
+      ""default"": {
+        ""alias"": {
+          ""platforms"": null,
+          ""product_id"": """"
+        },
+        ""available_platforms"": [
+          ""win"",
+          ""playstation5"",
+          ""xboxSeriesXS""
+        ],
+        ""client_product_type"": ""riot_game"",
+        ""content_paths"": {
+          ""loc"": ""https://lion.secure.dyn.riotcdn.net/channels/public/rccontent/loc"",
+          ""riotstatus"": ""https://lion.secure.dyn.riotcdn.net/channels/public"",
+          ""social"": ""https://lion.secure.dyn.riotcdn.net/channels/public/rccontent/social""
+        },
+        ""full_name"": ""2XKO"",
+        ""path_name"": ""2XKO/Live"",
+        ""rso_client_id"": ""lion-client"",
+        ""theme_manifest"": ""https://lion.secure.dyn.riotcdn.net/channels/public/rccontent/theme/manifest.json""
+      }
+    },
+    ""platforms"": {
+      ""win"": {
+        ""auto_patch"": false,
+        ""configurations"": [
+          {
+            ""allowed_http_fallback_hostnames"": [
+              ""lion.dyn.riotcdn.net""
+            ],
+            ""bundles_url"": ""https://lion.dyn.riotcdn.net/channels/public/bundles"",
+            ""delete_foreign_paths"": true,
+            ""dependencies"": [],
+            ""disallow_32bit_windows"": false,
+            ""dynamic_tags"": [
+              {
+                ""heuristics"": {
+                  ""countries"": [
+                  ]
+                },
+                ""tags"": []
+              }
+            ],
+            ""entitlements"": null,
+            ""excluded_paths"": null,
+            ""id"": ""default"",
+            ""launchable_on_update_fail"": true,
+            ""launcher"": {
+              ""arguments"": [
+                ""-remoting-app-port={remoting-app-port}"",
+                ""-remoting-auth-token={remoting-auth-token}"",
+                ""-subject={rso-subject}"",
+                ""-riotgamesapi-settings-token={settings-token}""
+              ],
+              ""component_id"": """",
+              ""executables"": {
+                ""app"": ""Lion.exe"",
+                ""exe"": ""Lion.exe""
+              }
+            },
+            ""locale_data"": {
+              ""available_locales"": [
+                ""en_US""
+              ],
+              ""default_locale"": ""en_US""
+            },
+            ""metadata"": {
+              ""alias"": {
+                ""platforms"": null,
+                ""product_id"": """"
+              },
+              ""client_product_type"": ""riot_game""
+            },
+            ""patch_artifacts"": [
+              {
+                ""excluded_paths"": null,
+                ""id"": ""lion_client"",
+                ""patch_url"": ""https://lion.secure.dyn.riotcdn.net/channels/public/releases/9C1D8FEF2C70A2CE.manifest"",
+                ""tags"": null,
+                ""type"": ""patch_url""
+              }
+            ],
+            ""patch_notes_url"": """",
+            ""patch_url"": ""https://lion.secure.dyn.riotcdn.net/channels/public/releases/9C1D8FEF2C70A2CE.manifest"",
+            ""live"": [
+              ""default""
+            ]
+          }
+        ],
+        ""dependencies"": null,
+        ""deprecated_cloudfront_id"": """",
+        ""icon_path"": ""https://lion.secure.dyn.riotcdn.net/channels/public/rccontent/theme/2XKO.ico"",
+        ""install_dir"": ""2XKO/Live""
+      }
+    },
+    ""version"": ""1.0.0""
+  }
+}";
+                var injectionObject = JsonNode.Parse(injectionJson)?.AsObject();
+                if (injectionObject is not null)
+                {
+                    var newConfig = new JsonObject();
+
+                    foreach (var property in injectionObject)
+                    {
+                        newConfig[property.Key] = property.Value?.DeepClone();
+                    }
+
+                    foreach (var property in configObject.AsObject())
+                    {
+                        if (!newConfig.ContainsKey(property.Key))
+                        {
+                            newConfig[property.Key] = property.Value?.DeepClone();
+                        }
+                    }
+
+                    configObject = newConfig;
+                }
+            }
+
             var GeopassUrlNode = configObject?["keystone.player-affinity.playerAffinityServiceURL"];
             if (GeopassUrlNode != null)
             {
@@ -428,6 +564,7 @@ public partial class ConfigProxy
                 SetKey(configObject, "anticheat.vanguard.enabled", false);
                 SetKey(configObject, "keystone.client.feature_flags.restart_required.disabled", true);
                 SetKey(configObject, "keystone.client.feature_flags.vanguardLaunch.disabled", true);
+                SetKey(configObject, "keystone.client.feature_flags.vanguard_attestation.enabled", false);
                 SetKey(configObject, "lol.client_settings.vanguard.enabled", false);
                 SetKey(configObject, "lol.client_settings.vanguard.enabled_embedded", false);
                 SetKey(configObject, "lol.client_settings.vanguard.url", "");
@@ -518,15 +655,13 @@ public partial class ConfigProxy
                 SetEmptyArrayForConfig(configObject, "lol.client_settings.store.customPageFiltersMap");
             }
 
-            if (configObject?["rms.port"] is not null)
-            {
-                configObject["rms.port"] = LeagueProxy.RmsPort;
-            }
-
+            SetKey(configObject, "rms.port", LeagueProxy.RmsPort);
             SetKey(configObject, "keystone.player-affinity.playerAffinityServiceURL", $"http://127.0.0.1:{LeagueProxy.GeopassPort}");
             SetKey(configObject, "lol.client_settings.client_navigability.base_url", $"http://127.0.0.1:{LeagueProxy.LcuNavigationPort}");
             SetKey(configObject, "lol.client_settings.player_platform_edge.url", $"http://127.0.0.1:{LeagueProxy.PlatformPort}");
 
+            //SetKey(configObject, "keystone.self_update.manifest_url", "https://ks-foundation.secure.dyn.riotcdn.net/channels/public/releases/3C1F91D956BD2C85.manifest");
+            SetKey(configObject, "lol.client_settings.show_dx11_notification_on_every_startup", false);
             SetKey(configObject, "keystone.age_restriction.enabled", false);
             SetKey(configObject, "keystone.client.feature_flags.lifecycle.backgroundRunning.enabled", false);
             SetKey(configObject, "keystone.client.feature_flags.cpu_memory_warning_report.enabled", false);
@@ -836,39 +971,38 @@ public partial class ConfigProxy
             }
         }
     }
-    public static class JwtDecoder
+
+    private static string? DecodeAndGetRegion(string jwtToken)
     {
-        public static string? DecodeAndGetRegion(string jwtToken)
+        try
         {
-            try
-            {
-                var pasJwtContent = jwtToken.Split('.')[1];
-                var validBase64 = pasJwtContent.PadRight((pasJwtContent.Length / 4 * 4) + (pasJwtContent.Length % 4 == 0 ? 0 : 4), '=');
-                var pasJwtString = Encoding.UTF8.GetString(Convert.FromBase64String(validBase64));
-                var pasJwtJson = JsonSerializer.Deserialize<JsonNode>(pasJwtString);
-                var region = pasJwtJson?["affinity"]?.GetValue<string>();
+            var pasJwtContent = jwtToken.Split('.')[1];
+            var validBase64 = pasJwtContent.PadRight((pasJwtContent.Length / 4 * 4) + (pasJwtContent.Length % 4 == 0 ? 0 : 4), '=');
+            var pasJwtString = Encoding.UTF8.GetString(Convert.FromBase64String(validBase64));
+            var pasJwtJson = JsonSerializer.Deserialize<JsonNode>(pasJwtString);
+            var region = pasJwtJson?["affinity"]?.GetValue<string>();
 
-                if (region == null)
-                {
-                    Trace.WriteLine("[ERROR] JWT payload is malformed or missing 'affinity'.");
-                }
-
-                return region ?? throw new Exception("JWT payload is malformed or missing 'affinity'.");
-            }
-            catch (Exception ex)
+            if (region == null)
             {
-                Trace.WriteLine(ex);
-                return null;
+                Trace.WriteLine("[ERROR] JWT payload is malformed or missing 'affinity'.");
             }
+
+            return region ?? throw new Exception("JWT payload is malformed or missing 'affinity'.");
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine(ex);
+            return null;
         }
     }
+
     public static class GeopassHandlerChat
     {
         private static string? _userRegion;
 
         public static void DecodeAndStoreUserRegion(string content)
         {
-            _userRegion = JwtDecoder.DecodeAndGetRegion(content);
+            _userRegion = DecodeAndGetRegion(content);
         }
 
         public static string GetUserRegion()
@@ -882,7 +1016,7 @@ public partial class ConfigProxy
 
         public static void DecodeAndStoreUserRegion(string content)
         {
-            _userRegion = JwtDecoder.DecodeAndGetRegion(content);
+            _userRegion = DecodeAndGetRegion(content);
         }
 
         public static string GetUserRegion()
@@ -896,7 +1030,7 @@ public partial class ConfigProxy
 
         public static void DecodeAndStoreUserRegion(string content)
         {
-            _userRegion = JwtDecoder.DecodeAndGetRegion(content);
+            _userRegion = DecodeAndGetRegion(content);
         }
 
         public static string GetUserRegion()
@@ -910,7 +1044,7 @@ public partial class ConfigProxy
 
         public static void DecodeAndStoreUserRegion(string content)
         {
-            _userRegion = JwtDecoder.DecodeAndGetRegion(content);
+            _userRegion = DecodeAndGetRegion(content);
         }
 
         public static string GetUserRegion()

@@ -24,7 +24,7 @@ public class LeagueProxy
     private static readonly LcuNavProxy _LcuNavProxy;
 
     public static int ChatPort { get; private set; }
-    public static int RtmpPort { get; private set; } //rtmp proxy shall use this port to listen on
+    public static int RtmpPort { get; private set; }
     public static int RmsPort { get; private set; }
     public static int ConfigPort { get; private set; }
     public static int GeopassPort { get; private set; }
@@ -64,8 +64,7 @@ public class LeagueProxy
 
         _ChatProxy?.RunAsync(_ServerCTS.Token);
         _RmsProxy?.RunAsync(_ServerCTS.Token);
-
-        _RtmpProxy?.RunAsync(_ServerCTS.Token);
+        //_RtmpProxy?.RunAsync(_ServerCTS.Token);
 
         _ConfigProxy?.RunAsync(_ServerCTS.Token);
         _GeopassProxy?.RunAsync(_ServerCTS.Token);
@@ -85,8 +84,8 @@ public class LeagueProxy
         }
 
         ChatPort = ports[0];
-        RtmpPort = ports[1];
-        RmsPort = ports[2];
+        RmsPort = ports[1];
+        RtmpPort = ports[2];
         ConfigPort = ports[3];
         GeopassPort = ports[4];
         MailboxPort = ports[5];
@@ -118,7 +117,7 @@ public class LeagueProxy
         _ChatProxy.Stop();
         _RmsProxy.Stop();
 
-        _RtmpProxy.Stop();
+        //_RtmpProxy.Stop();
 
         _ConfigProxy.Stop();
         _GeopassProxy.Stop();
@@ -137,7 +136,6 @@ public class LeagueProxy
     {
         if (_ServerCTS is null)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
             Trace.WriteLine("[ERROR] RCS launch failed: Proxies were not started due to an error.");
         }
         return RiotClient.Launch(args);

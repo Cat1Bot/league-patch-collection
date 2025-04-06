@@ -6,7 +6,6 @@ using System.Security.Authentication;
 using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
-using RtmpProxyLib; // important
 
 namespace LeaguePatchCollection
 {
@@ -20,8 +19,6 @@ namespace LeaguePatchCollection
             _cts = CancellationTokenSource.CreateLinkedTokenSource(token);
             _listener = new TcpListener(IPAddress.Any, LeagueProxy.RtmpPort);
             _listener.Start();
-            Console.WriteLine("[RTMP] Proxy is listening for connections...");
-
             try
             {
                 while (!token.IsCancellationRequested)
@@ -80,7 +77,6 @@ namespace LeaguePatchCollection
             }
             finally
             {
-                Console.WriteLine("[RTMP] Client disconnected.");
                 client?.Close();
                 networkStream?.Dispose();
             }
@@ -94,7 +90,6 @@ namespace LeaguePatchCollection
                 int bytesRead;
                 while ((bytesRead = await clientStream.ReadAsync(buffer, cancellationToken)) > 0)
                 {
-                    // MITM: Modify outgoing data if needed
                     await serverStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
                     await serverStream.FlushAsync(cancellationToken);
                 }
@@ -113,7 +108,7 @@ namespace LeaguePatchCollection
                 int bytesRead;
                 while ((bytesRead = await serverStream.ReadAsync(buffer, cancellationToken)) > 0)
                 {
-                    // MITM: Modify incoming data if needed
+                    // decode packets here, mitm if needed then re encode and send back to client. idk this is cancer to do
                     await clientStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
                     await clientStream.FlushAsync(cancellationToken);
                 }

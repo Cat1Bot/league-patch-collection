@@ -86,10 +86,10 @@ public static partial class SystemYamlLive
 
             var modifications = new Dictionary<Regex, string>
         {
-            { rmsHost(), $"ws://127.0.0.1:{LeagueProxy.RmsPort}" },
-            { lcdsHost(), "127.0.0.1" },
+            /*{ lcdsHost(), "127.0.0.1" },
             { lcdsPort(), $"{LeagueProxy.RtmpPort}" },
-            { lcdsTls(), "false" },
+            { lcdsTls(), "false" },*/
+            { rmsHost(), $"ws://127.0.0.1:{LeagueProxy.RmsPort}" },
             { ledgeUrl(), $"http://127.0.0.1:{LeagueProxy.LedgePort}" },
         };
 
@@ -98,7 +98,7 @@ public static partial class SystemYamlLive
                 yamlContent = modification.Key.Replace(yamlContent, modification.Value);
             }
 
-            string riotConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Riot Games", "Riot Client", "Config");
+            /*string riotConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Riot Games", "Riot Client", "Config");
             string riotConfigFile = Path.Combine(riotConfigPath, "RiotClientSettings.yaml");
 
             if (File.Exists(riotConfigFile))
@@ -140,7 +140,7 @@ public static partial class SystemYamlLive
                 {
                     Trace.WriteLine("[WARN] region not found in Riot Games config yaml.");
                 }
-            }
+            }*/
 
             File.WriteAllText(configFilePath, yamlContent);
         }
@@ -152,18 +152,14 @@ public static partial class SystemYamlLive
 
     [GeneratedRegex(@"(?<=rms_url\s*:\s*)\S+")]
     private static partial Regex rmsHost();
-    [GeneratedRegex(@"(?<=lcds_host\s*:\s*)\S+")]
-    private static partial Regex lcdsHost();
-
-    [GeneratedRegex(@"(?<=lcds_port\s*:\s*)\d+")]
-    private static partial Regex lcdsPort();
-
-    [GeneratedRegex(@"(?<=use_tls\s*:\s*)\btrue\b|\bfalse\b")]
-    private static partial Regex lcdsTls();
-
     [GeneratedRegex(@"(?<=league_edge_url\s*:\s*)\S+")]
     private static partial Regex ledgeUrl();
-    [GeneratedRegex(@"(?<=region\s*:\s*)\S+")]
+    /*[GeneratedRegex(@"(?<=region\s*:\s*)\S+")]
     private static partial Regex regionKey();
-
+    [GeneratedRegex(@"(?<=lcds_host\s*:\s*)\S+")]
+    private static partial Regex lcdsHost();
+    [GeneratedRegex(@"(?<=lcds_port\s*:\s*)\d+")]
+    private static partial Regex lcdsPort();
+    [GeneratedRegex(@"(?<=use_tls\s*:\s*)\btrue\b|\bfalse\b")]
+    private static partial Regex lcdsTls();*/
 }

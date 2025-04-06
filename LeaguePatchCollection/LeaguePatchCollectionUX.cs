@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using System.Net;
 using Newtonsoft.Json.Linq;
 using System.Text;
+using RiotApiLib;
 
 namespace LeaguePatchCollection
 {
@@ -92,7 +93,7 @@ namespace LeaguePatchCollection
             }
         }
 
-        private async void BanReasonButton_Click(object sender, EventArgs e)
+        private void BanReasonButton_Click(object sender, EventArgs e)
         {
             MessageBox.Show("Ban reason pulled from login queue endpoint: " + PlatformProxy.banReason, "League Patch Collection", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
@@ -192,11 +193,15 @@ namespace LeaguePatchCollection
         }
         private async void RestartUXbutton_Click(object sender, EventArgs e)
         {
-            await LcuWatcher.SendLcuRequest("/riotclient/kill-and-restart-ux", HttpMethod.Post);
+            await LcuApi.SendRequest("/riotclient/kill-and-restart-ux", HttpMethod.Post);
+        }
+        private async void DodgeButton_Click(object sender, EventArgs e)
+        {
+            await LcuApi.SendRequest("/lol-login/v1/session/invoke?destination=lcdsServiceProxy&method=call&args=[\"\",\"teambuilder-draft\",\"quitV2\",\"\"]", HttpMethod.Post);
         }
         private async void DisconnectChatButton_Click(object sender, EventArgs e)
         {
-            var response = await RcsWatcher.SendRcsRequest("/chat/v1/session", HttpMethod.Get);
+            var response = await RcsApi.SendRequest("/chat/v1/session", HttpMethod.Get);
             if (response == null || !response.IsSuccessStatusCode)
             {
                 Trace.WriteLine("[ERROR] Failed to fetch chat session state.");
@@ -210,11 +215,11 @@ namespace LeaguePatchCollection
             if (sessionData?["state"]?.ToString() == "connected")
             {
                 var suspendContent = new StringContent("{\"config\":\"disable\"}", Encoding.UTF8, "application/json");
-                await RcsWatcher.SendRcsRequest("/chat/v1/suspend", HttpMethod.Post, suspendContent);
+                await RcsApi.SendRequest("/chat/v1/suspend", HttpMethod.Post, suspendContent);
             }
             else
             {
-                await RcsWatcher.SendRcsRequest("/chat/v1/resume", HttpMethod.Post);
+                await RcsApi.SendRequest("/chat/v1/resume", HttpMethod.Post);
             }
         }
 

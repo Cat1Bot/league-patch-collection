@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>5.4.0</Version>
+    <Version>5.4.1</Version>
     <ApplicationIcon>Resources\LPC.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugType>none</DebugType>
@@ -21,7 +21,6 @@
 
   <ItemGroup>
     <PackageReference Include="Guna.UI2.WinForms" Version="2.0.4.6" />
-    <PackageReference Include="mtanksl.ActionMessageFormat" Version="1.0.4" />
 	<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	<PackageReference Include="Unosquare.Swan.Lite" Version="3.1.0" />
 	<PackageReference Include="YamlDotNet" Version="16.3.0" />

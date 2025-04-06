@@ -54,6 +54,8 @@ namespace LeaguePatchCollection
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges18 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges19 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges20 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges25 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges26 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges23 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges24 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(LeaguePatchCollectionUX));
@@ -92,6 +94,7 @@ namespace LeaguePatchCollection
             StartButton = new Guna.UI2.WinForms.Guna2Button();
             CloseClientsButton = new Guna.UI2.WinForms.Guna2Button();
             guna2CustomGradientPanel2 = new Guna.UI2.WinForms.Guna2CustomGradientPanel();
+            DodgeButton = new Guna.UI2.WinForms.Guna2Button();
             MainHeaderBackdrop.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)TopWindowIcon).BeginInit();
             guna2CustomGradientPanel1.SuspendLayout();
@@ -144,7 +147,7 @@ namespace LeaguePatchCollection
             LegacyHonor.Cursor = Cursors.Hand;
             LegacyHonor.Font = new Font("Inter Tight SemiBold", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             LegacyHonor.ForeColor = Color.FromArgb(175, 175, 175);
-            LegacyHonor.Location = new Point(12, 88);
+            LegacyHonor.Location = new Point(12, 87);
             LegacyHonor.Name = "LegacyHonor";
             LegacyHonor.Size = new Size(160, 27);
             LegacyHonor.TabIndex = 24;
@@ -240,7 +243,7 @@ namespace LeaguePatchCollection
             NoBloatware.Cursor = Cursors.Hand;
             NoBloatware.Font = new Font("Inter Tight SemiBold", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             NoBloatware.ForeColor = Color.FromArgb(175, 175, 175);
-            NoBloatware.Location = new Point(178, 88);
+            NoBloatware.Location = new Point(178, 87);
             NoBloatware.Name = "NoBloatware";
             NoBloatware.Size = new Size(166, 27);
             NoBloatware.TabIndex = 32;
@@ -433,10 +436,10 @@ namespace LeaguePatchCollection
             BanReasonButton.HoverState.CustomBorderColor = Color.FromArgb(80, 80, 80);
             BanReasonButton.HoverState.FillColor = Color.FromArgb(60, 60, 60);
             BanReasonButton.HoverState.ForeColor = Color.White;
-            BanReasonButton.Location = new Point(143, 234);
+            BanReasonButton.Location = new Point(144, 234);
             BanReasonButton.Name = "BanReasonButton";
             BanReasonButton.ShadowDecoration.CustomizableEdges = customizableEdges4;
-            BanReasonButton.Size = new Size(174, 33);
+            BanReasonButton.Size = new Size(170, 33);
             BanReasonButton.TabIndex = 48;
             BanReasonButton.Text = "Check ban reason";
             BanReasonButton.Click += BanReasonButton_Click;
@@ -743,23 +746,54 @@ namespace LeaguePatchCollection
             // 
             guna2CustomGradientPanel2.BorderColor = SystemColors.WindowFrame;
             guna2CustomGradientPanel2.BorderThickness = 2;
+            guna2CustomGradientPanel2.Controls.Add(DodgeButton);
             guna2CustomGradientPanel2.Controls.Add(guna2CustomGradientPanel1);
             guna2CustomGradientPanel2.Controls.Add(MainHeaderBackdrop);
             guna2CustomGradientPanel2.Controls.Add(MiscLabel);
+            guna2CustomGradientPanel2.Controls.Add(BanReasonButton);
             guna2CustomGradientPanel2.Controls.Add(NoStore);
             guna2CustomGradientPanel2.Controls.Add(SupressBehavior);
             guna2CustomGradientPanel2.Controls.Add(NameChangeBypass);
             guna2CustomGradientPanel2.Controls.Add(DisableVanguard);
-            guna2CustomGradientPanel2.CustomizableEdges = customizableEdges23;
+            guna2CustomGradientPanel2.Controls.Add(LegacyHonor);
+            guna2CustomGradientPanel2.Controls.Add(NoBloatware);
+            guna2CustomGradientPanel2.CustomizableEdges = customizableEdges25;
             guna2CustomGradientPanel2.FillColor = Color.Transparent;
             guna2CustomGradientPanel2.FillColor2 = Color.Transparent;
             guna2CustomGradientPanel2.FillColor3 = Color.Transparent;
             guna2CustomGradientPanel2.FillColor4 = Color.Transparent;
             guna2CustomGradientPanel2.Location = new Point(0, 0);
             guna2CustomGradientPanel2.Name = "guna2CustomGradientPanel2";
-            guna2CustomGradientPanel2.ShadowDecoration.CustomizableEdges = customizableEdges24;
+            guna2CustomGradientPanel2.ShadowDecoration.CustomizableEdges = customizableEdges26;
             guna2CustomGradientPanel2.Size = new Size(600, 400);
             guna2CustomGradientPanel2.TabIndex = 52;
+            // 
+            // DodgeButton
+            // 
+            DodgeButton.BorderColor = Color.FromArgb(50, 50, 50);
+            DodgeButton.BorderRadius = 2;
+            DodgeButton.BorderThickness = 2;
+            DodgeButton.Cursor = Cursors.Hand;
+            DodgeButton.CustomBorderColor = Color.FromArgb(50, 50, 50);
+            DodgeButton.CustomizableEdges = customizableEdges23;
+            DodgeButton.DisabledState.BorderColor = Color.DarkGray;
+            DodgeButton.DisabledState.CustomBorderColor = Color.DarkGray;
+            DodgeButton.DisabledState.FillColor = Color.FromArgb(169, 169, 169);
+            DodgeButton.DisabledState.ForeColor = Color.FromArgb(141, 141, 141);
+            DodgeButton.FillColor = Color.FromArgb(30, 30, 30);
+            DodgeButton.Font = new Font("Inter SemiBold", 12F, FontStyle.Bold);
+            DodgeButton.ForeColor = Color.FromArgb(225, 225, 225);
+            DodgeButton.HoverState.BorderColor = Color.FromArgb(80, 80, 80);
+            DodgeButton.HoverState.CustomBorderColor = Color.FromArgb(80, 80, 80);
+            DodgeButton.HoverState.FillColor = Color.FromArgb(60, 60, 60);
+            DodgeButton.HoverState.ForeColor = Color.White;
+            DodgeButton.Location = new Point(320, 234);
+            DodgeButton.Name = "DodgeButton";
+            DodgeButton.ShadowDecoration.CustomizableEdges = customizableEdges24;
+            DodgeButton.Size = new Size(83, 33);
+            DodgeButton.TabIndex = 53;
+            DodgeButton.Text = "Dodge";
+            DodgeButton.Click += DodgeButton_Click;
             // 
             // LeaguePatchCollectionUX
             // 
@@ -773,7 +807,6 @@ namespace LeaguePatchCollection
             Controls.Add(CleanLogsButton);
             Controls.Add(ArgsLabel);
             Controls.Add(ArgsBox);
-            Controls.Add(BanReasonButton);
             Controls.Add(MiscSeperatorLeft);
             Controls.Add(MiscSeperatorRight);
             Controls.Add(DisconnectChatButton);
@@ -782,12 +815,10 @@ namespace LeaguePatchCollection
             Controls.Add(ShowOfflineButton);
             Controls.Add(ShowOnlineButton);
             Controls.Add(AppearAsLabel);
-            Controls.Add(NoBloatware);
             Controls.Add(ChatSeperatorRight);
             Controls.Add(ChatLabel);
             Controls.Add(ChatSeperatorLeft);
             Controls.Add(ConfigSeperatorLeft);
-            Controls.Add(LegacyHonor);
             Controls.Add(SectionLabelConfig);
             Controls.Add(guna2CustomGradientPanel2);
             Font = new Font("Beaufort for LOL", 16F, FontStyle.Bold);
@@ -845,5 +876,6 @@ namespace LeaguePatchCollection
         private Guna.UI2.WinForms.Guna2Button StartButton;
         private Guna.UI2.WinForms.Guna2Button CloseClientsButton;
         private Guna.UI2.WinForms.Guna2CustomGradientPanel guna2CustomGradientPanel2;
+        private Guna.UI2.WinForms.Guna2Button DodgeButton;
     }
 }
