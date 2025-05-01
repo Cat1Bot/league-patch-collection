@@ -54,10 +54,14 @@ namespace LeaguePatchCollection
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges18 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges19 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges20 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
-            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges25 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
-            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges26 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges29 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges30 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges23 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges24 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges25 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges26 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges27 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
+            Guna.UI2.WinForms.Suite.CustomizableEdges customizableEdges28 = new Guna.UI2.WinForms.Suite.CustomizableEdges();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(LeaguePatchCollectionUX));
             SectionLabelConfig = new Guna.UI2.WinForms.Guna2HtmlLabel();
             DisableVanguard = new Guna.UI2.WinForms.Guna2CheckBox();
@@ -94,6 +98,8 @@ namespace LeaguePatchCollection
             StartButton = new Guna.UI2.WinForms.Guna2Button();
             CloseClientsButton = new Guna.UI2.WinForms.Guna2Button();
             guna2CustomGradientPanel2 = new Guna.UI2.WinForms.Guna2CustomGradientPanel();
+            RemoveVgk = new Guna.UI2.WinForms.Guna2Button();
+            TpmBypass = new Guna.UI2.WinForms.Guna2Button();
             DodgeButton = new Guna.UI2.WinForms.Guna2Button();
             MainHeaderBackdrop.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)TopWindowIcon).BeginInit();
@@ -436,7 +442,7 @@ namespace LeaguePatchCollection
             BanReasonButton.HoverState.CustomBorderColor = Color.FromArgb(80, 80, 80);
             BanReasonButton.HoverState.FillColor = Color.FromArgb(60, 60, 60);
             BanReasonButton.HoverState.ForeColor = Color.White;
-            BanReasonButton.Location = new Point(144, 234);
+            BanReasonButton.Location = new Point(295, 234);
             BanReasonButton.Name = "BanReasonButton";
             BanReasonButton.ShadowDecoration.CustomizableEdges = customizableEdges4;
             BanReasonButton.Size = new Size(170, 33);
@@ -746,6 +752,8 @@ namespace LeaguePatchCollection
             // 
             guna2CustomGradientPanel2.BorderColor = SystemColors.WindowFrame;
             guna2CustomGradientPanel2.BorderThickness = 2;
+            guna2CustomGradientPanel2.Controls.Add(RemoveVgk);
+            guna2CustomGradientPanel2.Controls.Add(TpmBypass);
             guna2CustomGradientPanel2.Controls.Add(DodgeButton);
             guna2CustomGradientPanel2.Controls.Add(guna2CustomGradientPanel1);
             guna2CustomGradientPanel2.Controls.Add(MainHeaderBackdrop);
@@ -757,16 +765,71 @@ namespace LeaguePatchCollection
             guna2CustomGradientPanel2.Controls.Add(DisableVanguard);
             guna2CustomGradientPanel2.Controls.Add(LegacyHonor);
             guna2CustomGradientPanel2.Controls.Add(NoBloatware);
-            guna2CustomGradientPanel2.CustomizableEdges = customizableEdges25;
+            guna2CustomGradientPanel2.CustomizableEdges = customizableEdges29;
             guna2CustomGradientPanel2.FillColor = Color.Transparent;
             guna2CustomGradientPanel2.FillColor2 = Color.Transparent;
             guna2CustomGradientPanel2.FillColor3 = Color.Transparent;
             guna2CustomGradientPanel2.FillColor4 = Color.Transparent;
             guna2CustomGradientPanel2.Location = new Point(0, 0);
             guna2CustomGradientPanel2.Name = "guna2CustomGradientPanel2";
-            guna2CustomGradientPanel2.ShadowDecoration.CustomizableEdges = customizableEdges26;
+            guna2CustomGradientPanel2.ShadowDecoration.CustomizableEdges = customizableEdges30;
             guna2CustomGradientPanel2.Size = new Size(600, 400);
             guna2CustomGradientPanel2.TabIndex = 52;
+            // 
+            // RemoveVgk
+            // 
+            RemoveVgk.BorderColor = Color.FromArgb(50, 50, 50);
+            RemoveVgk.BorderRadius = 2;
+            RemoveVgk.BorderThickness = 2;
+            RemoveVgk.Cursor = Cursors.Hand;
+            RemoveVgk.CustomBorderColor = Color.FromArgb(50, 50, 50);
+            RemoveVgk.CustomizableEdges = customizableEdges23;
+            RemoveVgk.DisabledState.BorderColor = Color.DarkGray;
+            RemoveVgk.DisabledState.CustomBorderColor = Color.DarkGray;
+            RemoveVgk.DisabledState.FillColor = Color.FromArgb(169, 169, 169);
+            RemoveVgk.DisabledState.ForeColor = Color.FromArgb(141, 141, 141);
+            RemoveVgk.FillColor = Color.FromArgb(30, 30, 30);
+            RemoveVgk.Font = new Font("Inter SemiBold", 12F, FontStyle.Bold);
+            RemoveVgk.ForeColor = Color.FromArgb(225, 225, 225);
+            RemoveVgk.HoverState.BorderColor = Color.FromArgb(80, 80, 80);
+            RemoveVgk.HoverState.CustomBorderColor = Color.FromArgb(80, 80, 80);
+            RemoveVgk.HoverState.FillColor = Color.FromArgb(60, 60, 60);
+            RemoveVgk.HoverState.ForeColor = Color.White;
+            RemoveVgk.Location = new Point(12, 273);
+            RemoveVgk.Name = "RemoveVgk";
+            RemoveVgk.ShadowDecoration.CustomizableEdges = customizableEdges24;
+            RemoveVgk.Size = new Size(136, 33);
+            RemoveVgk.TabIndex = 55;
+            RemoveVgk.Text = "Uninstall VGK";
+            RemoveVgk.Click += RemoveVgk_Click;
+            // 
+            // TpmBypass
+            // 
+            TpmBypass.BorderColor = Color.FromArgb(50, 50, 50);
+            TpmBypass.BorderRadius = 2;
+            TpmBypass.BorderThickness = 2;
+            TpmBypass.Cursor = Cursors.Hand;
+            TpmBypass.CustomBorderColor = Color.FromArgb(50, 50, 50);
+            TpmBypass.CustomizableEdges = customizableEdges25;
+            TpmBypass.DisabledState.BorderColor = Color.DarkGray;
+            TpmBypass.DisabledState.CustomBorderColor = Color.DarkGray;
+            TpmBypass.DisabledState.FillColor = Color.FromArgb(169, 169, 169);
+            TpmBypass.DisabledState.ForeColor = Color.FromArgb(141, 141, 141);
+            TpmBypass.FillColor = Color.FromArgb(30, 30, 30);
+            TpmBypass.Font = new Font("Inter SemiBold", 12F, FontStyle.Bold);
+            TpmBypass.ForeColor = Color.FromArgb(225, 225, 225);
+            TpmBypass.HoverState.BorderColor = Color.FromArgb(80, 80, 80);
+            TpmBypass.HoverState.CustomBorderColor = Color.FromArgb(80, 80, 80);
+            TpmBypass.HoverState.FillColor = Color.FromArgb(60, 60, 60);
+            TpmBypass.HoverState.ForeColor = Color.White;
+            TpmBypass.Image = Properties.Resources.uac;
+            TpmBypass.Location = new Point(144, 234);
+            TpmBypass.Name = "TpmBypass";
+            TpmBypass.ShadowDecoration.CustomizableEdges = customizableEdges26;
+            TpmBypass.Size = new Size(145, 33);
+            TpmBypass.TabIndex = 54;
+            TpmBypass.Text = "Bypass TPM";
+            TpmBypass.Click += TpmBypass_Click;
             // 
             // DodgeButton
             // 
@@ -775,7 +838,7 @@ namespace LeaguePatchCollection
             DodgeButton.BorderThickness = 2;
             DodgeButton.Cursor = Cursors.Hand;
             DodgeButton.CustomBorderColor = Color.FromArgb(50, 50, 50);
-            DodgeButton.CustomizableEdges = customizableEdges23;
+            DodgeButton.CustomizableEdges = customizableEdges27;
             DodgeButton.DisabledState.BorderColor = Color.DarkGray;
             DodgeButton.DisabledState.CustomBorderColor = Color.DarkGray;
             DodgeButton.DisabledState.FillColor = Color.FromArgb(169, 169, 169);
@@ -787,9 +850,9 @@ namespace LeaguePatchCollection
             DodgeButton.HoverState.CustomBorderColor = Color.FromArgb(80, 80, 80);
             DodgeButton.HoverState.FillColor = Color.FromArgb(60, 60, 60);
             DodgeButton.HoverState.ForeColor = Color.White;
-            DodgeButton.Location = new Point(320, 234);
+            DodgeButton.Location = new Point(471, 234);
             DodgeButton.Name = "DodgeButton";
-            DodgeButton.ShadowDecoration.CustomizableEdges = customizableEdges24;
+            DodgeButton.ShadowDecoration.CustomizableEdges = customizableEdges28;
             DodgeButton.Size = new Size(83, 33);
             DodgeButton.TabIndex = 53;
             DodgeButton.Text = "Dodge";
@@ -877,5 +940,7 @@ namespace LeaguePatchCollection
         private Guna.UI2.WinForms.Guna2Button CloseClientsButton;
         private Guna.UI2.WinForms.Guna2CustomGradientPanel guna2CustomGradientPanel2;
         private Guna.UI2.WinForms.Guna2Button DodgeButton;
+        private Guna.UI2.WinForms.Guna2Button RemoveVgk;
+        private Guna.UI2.WinForms.Guna2Button TpmBypass;
     }
 }

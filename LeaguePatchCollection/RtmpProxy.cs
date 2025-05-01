@@ -123,6 +123,7 @@ namespace LeaguePatchCollection
         {
             _cts?.Cancel();
             _listener?.Stop();
+            _listener = null;
         }
     }
 }

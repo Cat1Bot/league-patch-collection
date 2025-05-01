@@ -13,7 +13,7 @@ using Newtonsoft.Json;
 using System.Net;
 using Newtonsoft.Json.Linq;
 using System.Text;
-using RiotApiLib;
+using RiotHelperLib;
 
 namespace LeaguePatchCollection
 {
@@ -30,6 +30,19 @@ namespace LeaguePatchCollection
         private const int WM_NCLBUTTONDOWN = 0xA1;
         private const int HTCAPTION = 0x2;
         private static readonly char[] separator = [' '];
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        private const int SW_HIDE = 0;
 
         public LeaguePatchCollectionUX()
         {
@@ -100,77 +113,7 @@ namespace LeaguePatchCollection
 
         private void CleanLogsButton_Click(object sender, EventArgs e)
         {
-            if (!IsRunningAsAdmin())
-            {
-                MessageBox.Show("Please run this app as administrator to perform this action.", "League Patch Collection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                Trace.WriteLine("[INFO] Log cleaner action requires administrator privileges. UAC request initiated.");
-                return;
-            }
-
-            try
-            {
-                DeleteFolder(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Riot Games"));
-                DeleteFolder(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Riot Games"));
-                DeleteFolder(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "riot-client-ux"));
-
-                string? leagueOfLegendsPath = FindLeagueOfLegendsPath();
-                if (!string.IsNullOrEmpty(leagueOfLegendsPath))
-                {
-                    DeleteFile(Path.Combine(leagueOfLegendsPath, "debug.log"));
-                    DeleteFolder(Path.Combine(leagueOfLegendsPath, "Config"));
-                    DeleteFolder(Path.Combine(leagueOfLegendsPath, "Cookies"));
-                    DeleteFolder(Path.Combine(leagueOfLegendsPath, "Logs"));
-                    DeleteFolder(Path.Combine(leagueOfLegendsPath, "GPUCache"));
-                }
-                else
-                {
-                    Trace.WriteLine("[WARN] League of Legends folder not found.");
-                    MessageBox.Show("League of Legends folder not found!", "League Patch Collection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
-
-                MessageBox.Show("Logs cleaned successfully!", "League Patch Collection", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                Trace.WriteLine($"[ERROR] Log cleaner failed with exception: {ex.Message}");
-                MessageBox.Show($"An error occurred while cleaning logs: {ex.Message}", "League Patch Collection", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private static bool IsRunningAsAdmin()
-        {
-            using var identity = WindowsIdentity.GetCurrent();
-            var principal = new WindowsPrincipal(identity);
-            return principal.IsInRole(WindowsBuiltInRole.Administrator);
-        }
-
-        private static string? FindLeagueOfLegendsPath()
-        {
-            foreach (var drive in DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed))
-            {
-                string path = Path.Combine(drive.RootDirectory.FullName, "Riot Games", "League of Legends");
-                if (Directory.Exists(path))
-                {
-                    return path;
-                }
-            }
-            return null;
-        }
-
-        private static void DeleteFolder(string folderPath)
-        {
-            if (Directory.Exists(folderPath))
-            {
-                Directory.Delete(folderPath, true);
-            }
-        }
-
-        private static void DeleteFile(string filePath)
-        {
-            if (File.Exists(filePath))
-            {
-                File.Delete(filePath);
-            }
+            LogCleaner.ClearLogs();
         }
 
         private void StartButton_Click(object sender, EventArgs e)
@@ -222,11 +165,31 @@ namespace LeaguePatchCollection
                 await RcsApi.SendRequest("/chat/v1/resume", HttpMethod.Post);
             }
         }
+        private void RemoveVgk_Click(object sender, EventArgs e)
+        {
+            ProcessUtil.RemoveVanguard();
+        }
+        private void TpmBypass_Click(object sender, EventArgs e)
+        {
+            EnumWindows((hWnd, lParam) =>
+            {
+                StringBuilder sb = new StringBuilder(256);
+                GetWindowText(hWnd, sb, sb.Capacity);
+                string windowTitle = sb.ToString();
 
+                if (windowTitle.StartsWith("VAN900"))
+                {
+                    ShowWindow(hWnd, SW_HIDE);
+                    Trace.WriteLine($"[INFO] Hiding VAN popup: {windowTitle}");
+                }
+
+                return true; // continue enumeration
+            }, IntPtr.Zero);
+        }
         private void DisableVanguard_CheckedChanged(object sender, EventArgs e)
         {
             SettingsManager.ConfigSettings.Novgk = DisableVanguard.Checked;
-            SettingsManager.SaveSettings();  // Save settings when updated
+            SettingsManager.SaveSettings();
         }
 
         private void LegacyHonor_CheckedChanged(object sender, EventArgs e)
@@ -350,7 +313,7 @@ namespace LeaguePatchCollection
                 }
                 catch (Exception ex)
                 {
-                    Trace.WriteLine($"[ERROR] An error occurred while loading settings, resetting to defaults: {ex.Message}");
+                    Trace.WriteLine($" [ERROR] An error occurred while loading settings, resetting to defaults: {ex.Message}");
                     SaveSettings();
                 }
             }
@@ -432,11 +395,11 @@ namespace LeaguePatchCollection
             }
             catch (TaskCanceledException)
             {
-                Trace.WriteLine("[ERROR] Request timed out while fetching the bloat key.");
+                Trace.WriteLine(" [ERROR] Request timed out while fetching the bloat key.");
             }
             catch (Exception ex)
             {
-                Trace.WriteLine($"[ERROR] Failed to fetch latest bloat key: {ex.Message}");
+                Trace.WriteLine($" [ERROR] Failed to fetch latest bloat key: {ex.Message}");
             }
         }
         internal static class Program

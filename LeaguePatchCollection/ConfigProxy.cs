@@ -41,11 +41,7 @@ public partial class ConfigProxy
                 _ = HandleClientAsync(client, token);
             }
         }
-        catch (Exception ex) when (ex is OperationCanceledException || ex is ObjectDisposedException) { }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ERROR] Proxy Listener failed: {ex.Message}");
-        }
+        catch (Exception) { }
         finally
         {
             Stop();
@@ -54,104 +50,92 @@ public partial class ConfigProxy
 
     private static async Task HandleClientAsync(TcpClient client, CancellationToken token)
     {
-        NetworkStream? clientStream = null;
+        using var clientStream = client.GetStream();
+        TcpClient? serverClient = null;
+        SslStream? sslStream = null;
+
         try
         {
-            clientStream = client.GetStream();
+            string? targetHost = "clientconfig.rpg.riotgames.com";
 
             var buffer = new byte[8192];
-            using MemoryStream requestStream = new();
-            int bytesRead;
-            bool headersComplete = false;
-            int headerEndIndex = -1;
-            byte[] headerTerminator = Encoding.UTF8.GetBytes("\r\n\r\n");
+            var headerTerminator = Encoding.UTF8.GetBytes("\r\n\r\n");
 
-            while (!headersComplete && (bytesRead = await clientStream.ReadAsync(buffer, token)) > 0)
+            while (!token.IsCancellationRequested)
             {
-                requestStream.Write(buffer, 0, bytesRead);
-                headerEndIndex = IndexOf(requestStream, headerTerminator);
-                if (headerEndIndex != -1)
+                using var requestStream = new MemoryStream();
+                int bytesRead, headerEndIndex = -1;
+                bool headersComplete = false;
+
+                while (!headersComplete && (bytesRead = await clientStream.ReadAsync(buffer, token)) > 0)
                 {
-                    headersComplete = true;
+                    requestStream.Write(buffer, 0, bytesRead);
+                    headerEndIndex = IndexOf(requestStream, headerTerminator);
+                    if (headerEndIndex != -1)
+                        headersComplete = true;
+                }
+
+                if (!headersComplete)
                     break;
-                }
-            }
-            if (!headersComplete)
-            {
-                return;
-            }
 
-            int headerSectionLength = headerEndIndex + headerTerminator.Length;
+                int headerLength = headerEndIndex + headerTerminator.Length;
+                string headersText = Encoding.UTF8.GetString(requestStream.GetBuffer(), 0, headerLength);
 
-            string headersText = Encoding.UTF8.GetString(requestStream.GetBuffer(), 0, headerSectionLength);
+                string[] requestLines = headersText.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+                string endpoint = requestLines.Length > 0 ? requestLines[0].Split(' ')[1] : string.Empty;
 
-            string[] requestLines = headersText.Split(separator, StringSplitOptions.RemoveEmptyEntries);
-            string endpoint = string.Empty;
-            if (requestLines.Length > 0)
-            {
-                string[] parts = requestLines[0].Split(' ');
-                if (parts.Length > 1)
+                int contentLength = 0;
+                foreach (var line in requestLines)
                 {
-                    endpoint = parts[1];
-                }
-            }
-
-            int contentLength = 0;
-            foreach (var line in requestLines)
-            {
-                if (line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))
-                {
-                    string value = line["Content-Length:".Length..].Trim();
-                    if (int.TryParse(value, out int len))
+                    if (line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))
                     {
-                        contentLength = len;
+                        string value = line["Content-Length:".Length..].Trim();
+                        if (int.TryParse(value, out int len))
+                            contentLength = len;
                     }
                 }
+
+                int bodyBytesReceived = (int)(requestStream.Length - headerLength);
+                while (bodyBytesReceived < contentLength &&
+                       (bytesRead = await clientStream.ReadAsync(buffer, token)) > 0)
+                {
+                    requestStream.Write(buffer, 0, bytesRead);
+                    bodyBytesReceived += bytesRead;
+                }
+
+                byte[] fullRequestBytes = requestStream.ToArray();
+
+                if (serverClient == null || !serverClient.Connected)
+                {
+                    serverClient?.Close();
+                    serverClient = new TcpClient();
+                    await serverClient.ConnectAsync(targetHost, 443, token);
+                    sslStream = new SslStream(serverClient.GetStream(), false, (sender, certificate, chain, sslPolicyErrors) => true);
+                    await sslStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+                    {
+                        TargetHost = targetHost,
+                        EnabledSslProtocols = SslProtocols.Tls12
+                    }, token);
+                }
+
+                headersText = ReplaceHost().Replace(headersText, targetHost);
+                headersText = ReplaceOrigin().Replace(headersText, $"https://{targetHost}");
+                byte[] modifiedHeaderBytes = Encoding.UTF8.GetBytes(headersText);
+
+                await sslStream!.WriteAsync(modifiedHeaderBytes, token); //is it even technically possible for ssl stream to be null here??
+                if (bodyBytesReceived > 0)
+                    await sslStream.WriteAsync(fullRequestBytes.AsMemory(headerLength, bodyBytesReceived), token);
+                await sslStream.FlushAsync(token);
+
+                await ForwardServerToClientAsync(sslStream, clientStream, endpoint, token);
             }
-
-            int bodyBytesReceived = (int)(requestStream.Length - headerSectionLength);
-            while (bodyBytesReceived < contentLength && (bytesRead = await clientStream.ReadAsync(buffer, token)) > 0)
-            {
-                requestStream.Write(buffer, 0, bytesRead);
-                bodyBytesReceived += bytesRead;
-            }
-
-            byte[] fullRequestBytes = requestStream.ToArray();
-
-            string? targetHost = "clientconfig.rpg.riotgames.com";
-            if (string.IsNullOrEmpty(targetHost))
-                throw new Exception("Target host is not ready yet.");
-
-            using var serverClient = new TcpClient(targetHost, 443);
-            using var sslStream = new SslStream(serverClient.GetStream(), false, (sender, certificate, chain, sslPolicyErrors) => true);
-            await sslStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
-            {
-                TargetHost = targetHost,
-                EnabledSslProtocols = SslProtocols.Tls12
-            }, token);
-
-            headersText = ReplaceHost().Replace(headersText, targetHost);
-            headersText = ReplaceOrigin().Replace(headersText, $"https://{targetHost}");
-            byte[] modifiedHeaderBytes = Encoding.UTF8.GetBytes(headersText);
-
-            int bodyLength = fullRequestBytes.Length - headerSectionLength;
-            byte[] bodyBytes = new byte[bodyLength];
-            Array.Copy(fullRequestBytes, headerSectionLength, bodyBytes, 0, bodyLength);
-
-            await sslStream.WriteAsync(modifiedHeaderBytes, token);
-            if (bodyLength > 0)
-            {
-                await sslStream.WriteAsync(bodyBytes.AsMemory(0, bodyLength), token);
-            }
-            await sslStream.FlushAsync(token);
-
-            await ForwardServerToClientAsync(sslStream, clientStream, endpoint, token);
         }
-        catch (Exception) {/* Client closed connection */}
+        catch (IOException) { }
         finally
         {
-            client?.Close();
-            clientStream?.Dispose();
+            sslStream?.Dispose();
+            serverClient?.Close();
+            client.Close();
         }
     }
     private static int IndexOf(MemoryStream stream, byte[] pattern)
@@ -391,146 +375,10 @@ public partial class ConfigProxy
             string payloadStr = Encoding.UTF8.GetString(payload);
             var configObject = JsonSerializer.Deserialize<JsonNode>(payload);
 
-
-            if (configObject?.AsObject().ContainsKey("keystone.products.league_of_legends.patchlines.live") == true)
-            {
-                var injectionJson = @"{
-  ""keystone.products.lion.full_name"": ""2XKO"",
-  ""keystone.products.lion.patchlines.live"": {
-    ""metadata"": {
-      ""arg"": {
-        ""alias"": {
-          ""platforms"": null,
-          ""product_id"": """"
-        },
-        ""default_theme_manifest"": ""https://lion.secure.dyn.riotcdn.net/channels/public/rccontent/theme/manifest.json"",
-        ""full_name"": ""2XKO"",
-        ""theme_manifest"": ""https://lion.secure.dyn.riotcdn.net/channels/public/rccontent/theme/manifest.json""
-      },
-      ""default"": {
-        ""alias"": {
-          ""platforms"": null,
-          ""product_id"": """"
-        },
-        ""available_platforms"": [
-          ""win"",
-          ""playstation5"",
-          ""xboxSeriesXS""
-        ],
-        ""client_product_type"": ""riot_game"",
-        ""content_paths"": {
-          ""loc"": ""https://lion.secure.dyn.riotcdn.net/channels/public/rccontent/loc"",
-          ""riotstatus"": ""https://lion.secure.dyn.riotcdn.net/channels/public"",
-          ""social"": ""https://lion.secure.dyn.riotcdn.net/channels/public/rccontent/social""
-        },
-        ""full_name"": ""2XKO"",
-        ""path_name"": ""2XKO/Live"",
-        ""rso_client_id"": ""lion-client"",
-        ""theme_manifest"": ""https://lion.secure.dyn.riotcdn.net/channels/public/rccontent/theme/manifest.json""
-      }
-    },
-    ""platforms"": {
-      ""win"": {
-        ""auto_patch"": false,
-        ""configurations"": [
-          {
-            ""allowed_http_fallback_hostnames"": [
-              ""lion.dyn.riotcdn.net""
-            ],
-            ""bundles_url"": ""https://lion.dyn.riotcdn.net/channels/public/bundles"",
-            ""delete_foreign_paths"": true,
-            ""dependencies"": [],
-            ""disallow_32bit_windows"": false,
-            ""dynamic_tags"": [
-              {
-                ""heuristics"": {
-                  ""countries"": [
-                  ]
-                },
-                ""tags"": []
-              }
-            ],
-            ""entitlements"": null,
-            ""excluded_paths"": null,
-            ""id"": ""default"",
-            ""launchable_on_update_fail"": true,
-            ""launcher"": {
-              ""arguments"": [
-                ""-remoting-app-port={remoting-app-port}"",
-                ""-remoting-auth-token={remoting-auth-token}"",
-                ""-subject={rso-subject}"",
-                ""-riotgamesapi-settings-token={settings-token}""
-              ],
-              ""component_id"": """",
-              ""executables"": {
-                ""app"": ""Lion.exe"",
-                ""exe"": ""Lion.exe""
-              }
-            },
-            ""locale_data"": {
-              ""available_locales"": [
-                ""en_US""
-              ],
-              ""default_locale"": ""en_US""
-            },
-            ""metadata"": {
-              ""alias"": {
-                ""platforms"": null,
-                ""product_id"": """"
-              },
-              ""client_product_type"": ""riot_game""
-            },
-            ""patch_artifacts"": [
-              {
-                ""excluded_paths"": null,
-                ""id"": ""lion_client"",
-                ""patch_url"": ""https://lion.secure.dyn.riotcdn.net/channels/public/releases/9C1D8FEF2C70A2CE.manifest"",
-                ""tags"": null,
-                ""type"": ""patch_url""
-              }
-            ],
-            ""patch_notes_url"": """",
-            ""patch_url"": ""https://lion.secure.dyn.riotcdn.net/channels/public/releases/9C1D8FEF2C70A2CE.manifest"",
-            ""live"": [
-              ""default""
-            ]
-          }
-        ],
-        ""dependencies"": null,
-        ""deprecated_cloudfront_id"": """",
-        ""icon_path"": ""https://lion.secure.dyn.riotcdn.net/channels/public/rccontent/theme/2XKO.ico"",
-        ""install_dir"": ""2XKO/Live""
-      }
-    },
-    ""version"": ""1.0.0""
-  }
-}";
-                var injectionObject = JsonNode.Parse(injectionJson)?.AsObject();
-                if (injectionObject is not null)
-                {
-                    var newConfig = new JsonObject();
-
-                    foreach (var property in injectionObject)
-                    {
-                        newConfig[property.Key] = property.Value?.DeepClone();
-                    }
-
-                    foreach (var property in configObject.AsObject())
-                    {
-                        if (!newConfig.ContainsKey(property.Key))
-                        {
-                            newConfig[property.Key] = property.Value?.DeepClone();
-                        }
-                    }
-
-                    configObject = newConfig;
-                }
-            }
-
             var GeopassUrlNode = configObject?["keystone.player-affinity.playerAffinityServiceURL"];
             if (GeopassUrlNode != null)
             {
-               GeopassUrl = GeopassUrlNode.ToString();
+                GeopassUrl = GeopassUrlNode.ToString();
             }
 
             if (configObject?["keystone.mailbox.clusters"] is JsonObject MailboxAffinities)
@@ -660,14 +508,12 @@ public partial class ConfigProxy
             SetKey(configObject, "lol.client_settings.client_navigability.base_url", $"http://127.0.0.1:{LeagueProxy.LcuNavigationPort}");
             SetKey(configObject, "lol.client_settings.player_platform_edge.url", $"http://127.0.0.1:{LeagueProxy.PlatformPort}");
 
-            //SetKey(configObject, "keystone.self_update.manifest_url", "https://ks-foundation.secure.dyn.riotcdn.net/channels/public/releases/3C1F91D956BD2C85.manifest");
             SetKey(configObject, "lol.client_settings.show_dx11_notification_on_every_startup", false);
             SetKey(configObject, "keystone.age_restriction.enabled", false);
             SetKey(configObject, "keystone.client.feature_flags.lifecycle.backgroundRunning.enabled", false);
             SetKey(configObject, "keystone.client.feature_flags.cpu_memory_warning_report.enabled", false);
             SetKey(configObject, "keystone.client.feature_flags.launch_on_computer_start.enabled", false);
             SetKey(configObject, "keystone.client.feature_flags.open_telemetry_sender.enabled", false);
-            SetKey(configObject, "keystone.client.feature_flags.pcbang_vanguard_restart_bypass.disabled", true);
             SetKey(configObject, "keystone.client.feature_flags.quick_actions.enabled", true);
             SetKey(configObject, "keystone.client.feature_flags.self_update_in_background.enabled", false);
             SetKey(configObject, "keystone.client_config.diagnostics_enabled", false);
@@ -810,13 +656,22 @@ public partial class ConfigProxy
                     activeBannersConfig["enabled"] = false;
                 }
             }
+             
+            SetKey(configObject, "chat.port", LeagueProxy.ChatPort);
+            SetKey(configObject, "lol.client_settings.league_edge.url", $"http://127.0.0.1:{LeagueProxy.LedgePort}");
 
-            if (configObject?["chat.port"] is not null)
-            {
-                configObject["chat.port"] = LeagueProxy.ChatPort;
+            if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Novgk)
+            { 
+                SetKey(configObject, "lion.vanguard.required", false);
+                SetKey(configObject, "lion.vanguard.netrequired", false);
+                RemoveVanguardDependencies(configObject, "keystone.products.lion.patchlines.live");
             }
 
-            SetKey(configObject, "lol.client_settings.league_edge.url", $"http://127.0.0.1:{LeagueProxy.LedgePort}");
+            SetKey(configObject, "lion.analytics.enable", false);
+            SetKey(configObject, "chat.allow_bad_cert.enabled", true);
+            SetKey(configObject, "chat.allow_bad_cert.enabled", true);
+            SetKey(configObject, "chat.allow_bad_cert.enabled", true);
+            SetKey(configObject, "chat.allow_bad_cert.enabled", true);
 
             SetKey(configObject, "chat.allow_bad_cert.enabled", true);
             SetKey(configObject, "chat.host", "127.0.0.1");
@@ -848,6 +703,7 @@ public partial class ConfigProxy
     {
         _cts?.Cancel();
         _listener?.Stop();
+        _listener = null;
     }
 
     private static void StartBackgroundTaskForRmsAffinities(JsonObject rmsAffinities)

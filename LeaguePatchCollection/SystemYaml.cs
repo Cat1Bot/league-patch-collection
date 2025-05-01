@@ -43,7 +43,7 @@ public static partial class SystemYamlLive
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error reading or parsing the file: {ex.Message}");
+            Trace.WriteLine($" [ERROR] Exception while parsing file: {ex.Message}");
             return null;
         }
     }
@@ -74,7 +74,7 @@ public static partial class SystemYamlLive
         }
         else
         {
-            Trace.WriteLine($"[WARN] Source system.yaml not found at {sourceFile}");
+            Trace.WriteLine($" [WARN] system.yaml not found at {sourceFile}");
         }
     }
 
@@ -146,7 +146,7 @@ public static partial class SystemYamlLive
         }
         catch (Exception ex)
         {
-            Trace.WriteLine($"[ERROR] Error modifying system.yaml: {ex.Message}");
+            Trace.WriteLine($" [ERROR] Error modifying system.yaml: {ex.Message}");
         }
     }
 

@@ -29,11 +29,7 @@ namespace LeaguePatchCollection
                     _ = HandleClient(client, token);
                 }
             }
-            catch (ObjectDisposedException) { /* Listener was stopped, we can ignore this exception */ }
-            catch (Exception ex)
-            {
-                Trace.WriteLine($"[ERROR] Error in RMS listener: {ex.Message}");
-            }
+            catch (Exception) { }
             finally
             {
                 Stop();
@@ -70,7 +66,6 @@ namespace LeaguePatchCollection
             var serverReader = new StreamReader(serverStream, Encoding.ASCII);
 
             string? responseLine = await serverReader.ReadLineAsync();
-            Trace.WriteLine($"[INFO] RMS handshake response: {responseLine}");
             await clientWriter.WriteLineAsync(responseLine ?? string.Empty);
 
             while (true)
@@ -95,7 +90,6 @@ namespace LeaguePatchCollection
                 var sslStream = new SslStream(serverStream, false, (sender, certificate, chain, sslPolicyErrors) => true);
                 await sslStream.AuthenticateAsClientAsync(rmsHost!);
                 serverStream = sslStream;
-                Trace.WriteLine("[INFO] RMS Connection to server established.");
 
                 await HandleWebSocketHandshakeAsync(client.GetStream(), serverStream);
 
@@ -104,10 +98,7 @@ namespace LeaguePatchCollection
 
                 await Task.WhenAny(clientToServerTask, serverToClientTask);
             }
-            catch (Exception ex) when (ex is IOException || ex is ObjectDisposedException)
-            {
-                Trace.WriteLine($"[WARN] RMS Client disconnected or connection error: {ex.Message}");
-            }
+            catch (Exception){ }
         }
 
         private static async Task ForwardClientToServerAsync(Stream source, Stream destination, CancellationToken token)
@@ -193,6 +184,7 @@ namespace LeaguePatchCollection
         {
             _cts?.Cancel();
             _listener?.Stop();
+            _listener = null;
         }
 
         [GeneratedRegex(@"RANKED_RESTRICTED")]

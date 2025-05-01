@@ -29,11 +29,7 @@ namespace LeaguePatchCollection
                     _ = HandleClient(client, token);
                 }
             }
-            catch (ObjectDisposedException) { /* Listener was stopped, we can ignore this exception */ }
-            catch (Exception ex)
-            {
-                Trace.WriteLine($"[ERROR] Error in XMPP listener: {ex.Message}");
-            }
+            catch (Exception) { }
             finally
             {
                 Stop();
@@ -64,10 +60,7 @@ namespace LeaguePatchCollection
 
                 await Task.WhenAny(clientToServerTask, serverToClientTask);
             }
-            catch (Exception ex) when (ex is IOException || ex is ObjectDisposedException)
-            {
-                Console.WriteLine($"[WARN] XMPP Client disconnected or connection error: {ex.Message}");
-            }
+            catch (Exception) { }
             finally
             {
                 client?.Close();
@@ -155,7 +148,6 @@ namespace LeaguePatchCollection
             catch (Exception) { /* Server disconnected or client connection error */ }
         }
 
-
         private async Task SendCustomPacket(Stream destination)
         {
             var randomStanzaId = Guid.NewGuid();
@@ -219,6 +211,7 @@ namespace LeaguePatchCollection
         {
             _cts?.Cancel();
             _listener?.Stop();
+            _listener = null;
         }
 
         [GeneratedRegex(@"<show>.*?</show>")]

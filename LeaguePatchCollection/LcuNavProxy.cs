@@ -31,11 +31,7 @@ public partial class LcuNavProxy
                 _ = HandleClientAsync(client, token);
             }
         }
-        catch (Exception ex) when (ex is OperationCanceledException || ex is ObjectDisposedException) { }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ERROR] Proxy Listener failed: {ex.Message}");
-        }
+        catch (Exception) { }
         finally
         {
             Stop();
@@ -43,132 +39,120 @@ public partial class LcuNavProxy
     }
     private static async Task HandleClientAsync(TcpClient client, CancellationToken token)
     {
-        NetworkStream? clientStream = null;
+        using var clientStream = client.GetStream();
+        TcpClient? serverClient = null;
+        SslStream? sslStream = null;
+
         try
         {
-            clientStream = client.GetStream();
-
-            var buffer = new byte[8192];
-            using MemoryStream requestStream = new();
-            int bytesRead;
-            bool headersComplete = false;
-            int headerEndIndex = -1;
-            byte[] headerTerminator = Encoding.UTF8.GetBytes("\r\n\r\n");
-
-            while (!headersComplete && (bytesRead = await clientStream.ReadAsync(buffer, token)) > 0)
-            {
-                requestStream.Write(buffer, 0, bytesRead);
-                headerEndIndex = IndexOf(requestStream, headerTerminator);
-                if (headerEndIndex != -1)
-                {
-                    headersComplete = true;
-                    break;
-                }
-            }
-            if (!headersComplete)
-            {
-                return;
-            }
-
-            int headerSectionLength = headerEndIndex + headerTerminator.Length;
-
-            string headersText = Encoding.UTF8.GetString(requestStream.GetBuffer(), 0, headerSectionLength);
-
-            string[] requestLines = headersText.Split(separator, StringSplitOptions.RemoveEmptyEntries);
-            string endpoint = string.Empty;
-            if (requestLines.Length > 0)
-            {
-                string[] parts = requestLines[0].Split(' ');
-                if (parts.Length > 1)
-                {
-                    endpoint = parts[1];
-                }
-            }
-
-            if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobloatware)
-            {
-                if (endpoint.StartsWith("/publishing-content/v2.0/public/channel/league_of_legends_client/page/info-hub"))
-                {
-                    string dateHeader = "Date: " + DateTime.UtcNow.ToString("r") + "\r\n";
-                    string jsonBody = "{\"status\":{\"message\":\"Forbidden\",\"status_code\":403}}";
-                    string contentLengthHeader = "Content-Length: " + Encoding.UTF8.GetByteCount(jsonBody) + "\r\n";
-                    string contentTypeHeader = "Content-Type: application/json\r\n";
-
-                    string forbiddenResponse = "HTTP/1.1 403 Forbidden\r\n" +
-                                               dateHeader +
-                                               contentTypeHeader +
-                                               contentLengthHeader +
-                                               "Connection: close\r\n\r\n" +
-                                               jsonBody;
-
-                    byte[] responseBytes = Encoding.UTF8.GetBytes(forbiddenResponse);
-                    await clientStream.WriteAsync(responseBytes, token);
-                    await clientStream.FlushAsync(token);
-                    return;
-                }
-            }
-
-            int contentLength = 0;
-            foreach (var line in requestLines)
-            {
-                if (line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))
-                {
-                    string value = line["Content-Length:".Length..].Trim();
-                    if (int.TryParse(value, out int len))
-                    {
-                        contentLength = len;
-                    }
-                }
-            }
-
-            int bodyBytesReceived = (int)(requestStream.Length - headerSectionLength);
-            while (bodyBytesReceived < contentLength && (bytesRead = await clientStream.ReadAsync(buffer, token)) > 0)
-            {
-                requestStream.Write(buffer, 0, bytesRead);
-                bodyBytesReceived += bytesRead;
-            }
-
-            byte[] fullRequestBytes = requestStream.ToArray();
-
             string? targetHost = ConfigProxy.LcuNavigationUrl?.Replace("https://", "");
             if (string.IsNullOrEmpty(targetHost))
                 throw new Exception("Target host is not ready yet.");
 
-            using var serverClient = new TcpClient(targetHost, 443);
-            using var sslStream = new SslStream(serverClient.GetStream(), false, (sender, certificate, chain, sslPolicyErrors) => true);
-            await sslStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+            var buffer = new byte[8192];
+            var headerTerminator = Encoding.UTF8.GetBytes("\r\n\r\n");
+
+            while (!token.IsCancellationRequested)
             {
-                TargetHost = targetHost,
-                EnabledSslProtocols = SslProtocols.Tls12
-            }, token);
+                using var requestStream = new MemoryStream();
+                int bytesRead, headerEndIndex = -1;
+                bool headersComplete = false;
 
-            headersText = ReplaceHost().Replace(headersText, targetHost);
-            headersText = ReplaceOrigin().Replace(headersText, $"https://{targetHost}");
-            byte[] modifiedHeaderBytes = Encoding.UTF8.GetBytes(headersText);
+                while (!headersComplete && (bytesRead = await clientStream.ReadAsync(buffer, token)) > 0)
+                {
+                    requestStream.Write(buffer, 0, bytesRead);
+                    headerEndIndex = IndexOf(requestStream, headerTerminator);
+                    if (headerEndIndex != -1)
+                        headersComplete = true;
+                }
 
-            int bodyLength = fullRequestBytes.Length - headerSectionLength;
-            byte[] bodyBytes = new byte[bodyLength];
-            Array.Copy(fullRequestBytes, headerSectionLength, bodyBytes, 0, bodyLength);
+                if (!headersComplete)
+                    break;
 
-            await sslStream.WriteAsync(modifiedHeaderBytes, token);
-            if (bodyLength > 0)
-            {
-                await sslStream.WriteAsync(bodyBytes.AsMemory(0, bodyLength), token);
+                int headerLength = headerEndIndex + headerTerminator.Length;
+                string headersText = Encoding.UTF8.GetString(requestStream.GetBuffer(), 0, headerLength);
+
+                string[] requestLines = headersText.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+                string endpoint = requestLines.Length > 0 ? requestLines[0].Split(' ')[1] : string.Empty;
+
+                if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobloatware)
+                {
+                    if (endpoint.StartsWith("/publishing-content/v2.0/public/channel/league_of_legends_client/page/info-hub"))
+                    {
+                        string dateHeader = "Date: " + DateTime.UtcNow.ToString("r") + "\r\n";
+                        string jsonBody = "{\"status\":{\"message\":\"Forbidden\",\"status_code\":403}}";
+                        string contentLengthHeader = "Content-Length: " + Encoding.UTF8.GetByteCount(jsonBody) + "\r\n";
+                        string contentTypeHeader = "Content-Type: application/json\r\n";
+
+                        string forbiddenResponse = "HTTP/1.1 403 Forbidden\r\n" +
+                                                   dateHeader +
+                                                   contentTypeHeader +
+                                                   contentLengthHeader +
+                                                   "Connection: keep-alive\r\n\r\n" +
+                                                   jsonBody;
+
+                        byte[] responseBytes = Encoding.UTF8.GetBytes(forbiddenResponse);
+                        await clientStream.WriteAsync(responseBytes, token);
+                        await clientStream.FlushAsync(token);
+                        return;
+                    }
+                }
+
+                int contentLength = 0;
+                foreach (var line in requestLines)
+                {
+                    if (line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = line["Content-Length:".Length..].Trim();
+                        if (int.TryParse(value, out int len))
+                            contentLength = len;
+                    }
+                }
+
+                int bodyBytesReceived = (int)(requestStream.Length - headerLength);
+                while (bodyBytesReceived < contentLength &&
+                       (bytesRead = await clientStream.ReadAsync(buffer, token)) > 0)
+                {
+                    requestStream.Write(buffer, 0, bytesRead);
+                    bodyBytesReceived += bytesRead;
+                }
+
+                byte[] fullRequestBytes = requestStream.ToArray();
+
+                if (serverClient == null || !serverClient.Connected)
+                {
+                    serverClient?.Close();
+                    serverClient = new TcpClient();
+                    await serverClient.ConnectAsync(targetHost, 443, token);
+                    sslStream = new SslStream(serverClient.GetStream(), false, (sender, certificate, chain, sslPolicyErrors) => true);
+                    await sslStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+                    {
+                        TargetHost = targetHost,
+                        EnabledSslProtocols = SslProtocols.Tls12
+                    }, token);
+                }
+
+                headersText = ReplaceHost().Replace(headersText, targetHost);
+                headersText = ReplaceOrigin().Replace(headersText, $"https://{targetHost}");
+                byte[] modifiedHeaderBytes = Encoding.UTF8.GetBytes(headersText);
+
+                await sslStream!.WriteAsync(modifiedHeaderBytes, token); //is it even technically possible for ssl stream to be null here??
+                if (bodyBytesReceived > 0)
+                    await sslStream.WriteAsync(fullRequestBytes.AsMemory(headerLength, bodyBytesReceived), token);
+                await sslStream.FlushAsync(token);
+
+                await ForwardServerToClientAsync(sslStream, clientStream, endpoint, token);
             }
-            await sslStream.FlushAsync(token);
-
-            await ForwardServerToClientAsync(sslStream, clientStream, endpoint, token);
         }
-        catch (Exception ex)
-        {
-            Trace.WriteLine($"[ERROR] Client handling error: {ex.Message}");
-        }
+        catch (Exception) { }
         finally
         {
-            client?.Close();
-            clientStream?.Dispose();
+            sslStream?.Dispose();
+            serverClient?.Close();
+            client.Close();
         }
     }
+
     private static int IndexOf(MemoryStream stream, byte[] pattern)
     {
         int len = (int)stream.Length;
@@ -435,6 +419,7 @@ public partial class LcuNavProxy
     {
         _cts?.Cancel();
         _listener?.Stop();
+        _listener = null;
     }
 
     [GeneratedRegex(@"(?im)^Transfer-Encoding:\s*chunked\r\n")]
