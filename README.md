@@ -3,7 +3,7 @@
 >  
 > You can still enable this feature to use the full client functionality without VGK. This is useful for running **kbot** or other client debugging tools safely without the risk of being banned.
 
-![image](https://github.com/user-attachments/assets/eee29ac0-b5e0-406a-98c9-d8f2fcb17d13)
+![image](https://github.com/user-attachments/assets/9bb49fd9-3c70-4f5c-82d3-2dcb28c21e3a)
 
 # League Patch Collection – Vanguard Disabler & QOL Optimizer for League Client
 
@@ -14,6 +14,8 @@
 By default, this app provides the following enhancements:
 - :white_check_mark: **Dodge Button**: Exit champ select without having to close client (you still get dodge timer though).
 - :white_check_mark: **Vanguard Disabler**: Access full functionality of the League Client and use Kbot without risk of being banned. Usefull if you want to safely debug the client.
+- :white_check_mark: **TPM bypass**: When you get VAN9001 popup just click the button and it will supress the popup. No idea if this actually lets you into game though.
+- :white_check_mark: **Vanguard Uninstaller**: One click uninstall Vanguard completly without needing to confirm "are you sure popup".
 - :white_check_mark: **Disable Store**: Greys out store button and prevents popups and nags related to in-game purchases.
 - :white_check_mark: **Legacy Honor**: Restores the old post game honor screen pre patch 14.19 where you can only only one teammate. Honoring enemies is cringe.
 - :white_check_mark: **Log Cleaner**: Clean all client and account logs with the click of a button.
