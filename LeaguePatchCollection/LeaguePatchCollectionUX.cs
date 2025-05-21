@@ -59,7 +59,7 @@ namespace LeaguePatchCollection
             SupressBehavior.Checked = SettingsManager.ConfigSettings.Nobehavior;
             NameChangeBypass.Checked = SettingsManager.ConfigSettings.Namebypass;
             NoBloatware.Checked = SettingsManager.ConfigSettings.Nobloatware;
-            NoStore.Checked = SettingsManager.ConfigSettings.NoStore;
+            AutoAccept.Checked = SettingsManager.ConfigSettings.AutoAccept;
             ShowOfflineButton.Checked = SettingsManager.ChatSettings.EnableOffline;
             ShowMobileButton.Checked = SettingsManager.ChatSettings.EnableMobile;
             ShowAwayButton.Checked = SettingsManager.ChatSettings.EnableAway;
@@ -216,9 +216,9 @@ namespace LeaguePatchCollection
             SettingsManager.SaveSettings();
         }
 
-        private void NoStore_CheckedChanged(object sender, EventArgs e)
+        private void AutoAccept_CheckedChanged(object sender, EventArgs e)
         {
-            SettingsManager.ConfigSettings.NoStore = NoStore.Checked;
+            SettingsManager.ConfigSettings.AutoAccept = AutoAccept.Checked;
             SettingsManager.SaveSettings();
         }
 
@@ -282,7 +282,7 @@ namespace LeaguePatchCollection
                             settings?.ConfigSettings.Novgk == null ||
                             settings?.ConfigSettings.Legacyhonor == null ||
                             settings?.ConfigSettings.Namebypass == null ||
-                            settings?.ConfigSettings.NoStore == null ||
+                            settings?.ConfigSettings.AutoAccept == null ||
                             settings?.ConfigSettings.Nobloatware == null ||
                             settings?.ConfigSettings.Nobehavior == null ||
                             settings?.ConfigSettings.Args == null)
@@ -300,7 +300,7 @@ namespace LeaguePatchCollection
                             ConfigSettings.Novgk = settings?.ConfigSettings.Novgk;
                             ConfigSettings.Legacyhonor = settings?.ConfigSettings.Legacyhonor;
                             ConfigSettings.Namebypass = settings?.ConfigSettings.Namebypass;
-                            ConfigSettings.NoStore = settings?.ConfigSettings.NoStore;
+                            ConfigSettings.AutoAccept = settings?.ConfigSettings.AutoAccept;
                             ConfigSettings.Nobloatware = settings?.ConfigSettings.Nobloatware;
                             ConfigSettings.Nobehavior = settings?.ConfigSettings.Nobehavior;
                             ConfigSettings.Args = settings?.ConfigSettings.Args ?? string.Empty;
@@ -333,7 +333,7 @@ namespace LeaguePatchCollection
                         ConfigSettings.Novgk,
                         ConfigSettings.Legacyhonor,
                         ConfigSettings.Namebypass,
-                        ConfigSettings.NoStore,
+                        ConfigSettings.AutoAccept,
                         ConfigSettings.Nobloatware,
                         ConfigSettings.Nobehavior,
                         ConfigSettings.Args
@@ -356,7 +356,7 @@ namespace LeaguePatchCollection
             public bool Novgk { get; set; } = true;
             public bool Legacyhonor { get; set; } = false;
             public bool Namebypass { get; set; } = false;
-            public bool NoStore { get; set; } = false;
+            public bool AutoAccept { get; set; } = true;
             public bool Nobloatware { get; set; } = true;
             public bool Nobehavior { get; set; } = false;
             public string Args { get; set; } = "--launch-product=league_of_legends --launch-patchline=live";

@@ -112,74 +112,171 @@ namespace LeaguePatchCollection
             }
         }
 
+        private static (int headerLen, int payloadLen, bool isMasked, byte[] maskKey)
+            ParseWebSocketHeader(byte[] buffer, int bytesRead)
+        {
+            int offset = 0;
+            byte b1 = buffer[offset++];
+            byte b2 = buffer[offset++];
+
+            bool isMasked = (b2 & 0b1000_0000) != 0;
+            int payloadLen = b2 & 0b0111_1111;
+
+            if (payloadLen == 126)
+            {
+                payloadLen = (buffer[offset++] << 8) | buffer[offset++];
+            }
+            else if (payloadLen == 127)
+            {
+                payloadLen = (int)(
+                    ((long)buffer[offset++] << 56) |
+                    ((long)buffer[offset++] << 48) |
+                    ((long)buffer[offset++] << 40) |
+                    ((long)buffer[offset++] << 32) |
+                    ((long)buffer[offset++] << 24) |
+                    ((long)buffer[offset++] << 16) |
+                    ((long)buffer[offset++] << 8) |
+                     buffer[offset++]
+                );
+            }
+
+            byte[] maskKey = [];
+            if (isMasked)
+            {
+                maskKey = [.. buffer.Skip(offset).Take(4)];
+                offset += 4;
+            }
+
+            return (offset, payloadLen, isMasked, maskKey);
+        }
+
+        private static byte[] TryDecompressGzip(byte[] payload)
+        {
+            using var ms = new MemoryStream(payload);
+            using var gzip = new GZipStream(ms, CompressionMode.Decompress);
+            using var result = new MemoryStream();
+            gzip.CopyTo(result);
+            return result.ToArray();
+        }
+
+        private static byte[] BuildWebSocketFrame(byte originalB1, byte[] payload)
+        {
+            using var ms = new MemoryStream();
+            ms.WriteByte(originalB1);
+
+            if (payload.Length <= 125)
+            {
+                ms.WriteByte((byte)payload.Length);
+            }
+            else if (payload.Length <= ushort.MaxValue)
+            {
+                ms.WriteByte(126);
+                ms.WriteByte((byte)(payload.Length >> 8));
+                ms.WriteByte((byte)(payload.Length));
+            }
+            else
+            {
+                ms.WriteByte(127);
+                for (int i = 7; i >= 0; i--)
+                {
+                    ms.WriteByte((byte)(payload.Length >> (8 * i)));
+                }
+            }
+
+            ms.Write(payload, 0, payload.Length);
+            return ms.ToArray();
+        }
+
         private static async Task ForwardServerToClientAsync(Stream source, Stream destination, CancellationToken token)
         {
             var buffer = new byte[8192];
-            int bytesRead;
 
-            while ((bytesRead = await source.ReadAsync(buffer, token)) > 0)
+            while (true)
             {
-                string decodedMessage;
+                int bytesRead = await source.ReadAsync(buffer, token);
+                if (bytesRead == 0) break;
 
-                using (var memoryStream = new MemoryStream(buffer, 0, bytesRead))
-                using (var outputStream = new MemoryStream())
+                byte originalB1 = buffer[0];
+
+                var (headerLen, payloadLen, isMasked, maskKey) = ParseWebSocketHeader(buffer, bytesRead);
+                int frameLen = headerLen + payloadLen;
+
+                while (bytesRead < frameLen)
                 {
-                    while (memoryStream.Position < memoryStream.Length)
+                    int extra = await source.ReadAsync(buffer.AsMemory(bytesRead, buffer.Length - bytesRead), token);
+                    if (extra == 0) break;
+                    bytesRead += extra;
+                }
+
+                int suffixLen = Math.Max(0, bytesRead - frameLen);
+                var suffix = suffixLen > 0
+                           ? buffer.AsMemory(frameLen, suffixLen)
+                           : default;
+
+                byte[] payload = [.. buffer.Skip(headerLen).Take(payloadLen)];
+                if (isMasked)
+                    for (int i = 0; i < payload.Length; i++)
+                        payload[i] ^= maskKey[i % 4];
+
+                byte[] newPayload;
+                try
+                {
+                    if (payload.Length >= 2 && payload[0] == 0x1F && payload[1] == 0x8B)
                     {
-                        if (IsGzipHeader(memoryStream))
+                        newPayload = TryDecompressGzip(payload);
+                        string txt = Encoding.UTF8.GetString(newPayload);
+
+                        if (RankedRestriction().IsMatch(txt))
                         {
-                            using var gzipStream = new GZipStream(memoryStream, CompressionMode.Decompress, leaveOpen: true);
-                            gzipStream.CopyTo(outputStream);
+                            Trace.WriteLine("[Blocked GZIP message by RankedRestriction]");
+                            continue;
+                        }
+                        else if (NoClientClose().IsMatch(txt))
+                        {
+                            Trace.WriteLine("[Blocked GZIP message by NoClientClose]");
+                            continue;
+                        }
+                        else if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.AutoAccept && txt.Contains("\\\"autoAccept\\\":false"))
+                        {
+                            txt = Regex.Replace(
+                                txt,
+                                @"(\\?""autoAccept\\?""\s*:\s*)false",
+                                "$1true"
+                            );
+                            Trace.WriteLine($" [INFO] Patched RMS to auto-accept queue.");
+                        }
+
+                        newPayload = Encoding.UTF8.GetBytes(txt);
+                    }
+                    else
+                    {
+                        string orig = Encoding.UTF8.GetString(payload);
+                        if (orig.Contains("\"subject\":\"rms:gzip\""))
+                        {
+                            string replaced = orig.Replace("\"enabled\":\"true\"", "\"enabled\":\"false\"");
+                            Trace.WriteLine($"[Rewritten Subject] {replaced}");
+                            newPayload = Encoding.UTF8.GetBytes(replaced);
                         }
                         else
                         {
-                            int currentByte = memoryStream.ReadByte();
-                            if (currentByte == -1) break;
-                            outputStream.WriteByte((byte)currentByte);
+                            newPayload = payload;
                         }
                     }
-
-                    decodedMessage = Encoding.UTF8.GetString(outputStream.ToArray());
                 }
-
-                if (RankedRestriction().IsMatch(decodedMessage))
+                catch
                 {
-                    continue;
+                    newPayload = payload;
                 }
-                else if (NoClientClose().IsMatch(decodedMessage))
-                {
-                    continue;
-                }
-                //else if (BlockVanguardSessionCheck().IsMatch(decodedMessage))
-                //{
-                //    Trace.WriteLine("[INFO] ATTEMPING TO BYPASS GAMEFLOW KICK/BLOCK: BLOCKING MESSAING " + decodedMessage);
-                //    continue; // doesnt work - causes client to hang is champ select forever since this is server sided
-                //} 
-                await destination.WriteAsync(buffer.AsMemory(0, bytesRead), token);
+
+                byte[] newFrame = BuildWebSocketFrame(originalB1, newPayload);
+
+                await destination.WriteAsync(newFrame, token);
+
+                if (suffixLen > 0)
+                    await destination.WriteAsync(suffix, token);
             }
         }
-
-        private static bool IsGzipHeader(Stream stream)
-        {
-            if (stream.Length - stream.Position < 2) return false;
-
-            long originalPosition = stream.Position;
-
-            try
-            {
-                int firstByte = stream.ReadByte();
-                int secondByte = stream.ReadByte();
-
-                stream.Position = originalPosition;
-
-                return firstByte == 0x1F && secondByte == 0x8B;
-            }
-            catch
-            {
-                stream.Position = originalPosition;
-                return false;
-            }
-        }
+    
         public void Stop()
         {
             _cts?.Cancel();
@@ -191,7 +288,5 @@ namespace LeaguePatchCollection
         private static partial Regex RankedRestriction();
         [GeneratedRegex(@"GAMEFLOW_EVENT.PLAYER_KICKED.VANGUARD")]
         private static partial Regex NoClientClose();
-        //[GeneratedRegex(@"PLAYER_LACKS_VANGUARD_SESSION")]
-        //private static partial Regex BlockVanguardSessionCheck();
     }
 }

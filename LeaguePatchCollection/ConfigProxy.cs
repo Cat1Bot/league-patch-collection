@@ -478,37 +478,12 @@ public partial class ConfigProxy
                 SetKey(configObject, "lol.client_settings.reputation_based_honor_enabled", false);
             }
 
-            if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.NoStore)
-            {
-                SetKey(configObject, "lol.client_settings.navigation.enableRewardsProgram", false);
-                SetKey(configObject, "lol.client_settings.store.lcu.enableCodesPage", false);
-                SetKey(configObject, "lol.client_settings.store.lcu.enableFetchOffers", false);
-                SetKey(configObject, "lol.client_settings.store.lcu.enableGifting", false);
-                SetKey(configObject, "lol.client_settings.store.enableGiftingMessages", false);
-                SetKey(configObject, "lol.client_settings.store.lcu.enableHextechItems", false);
-                SetKey(configObject, "lol.client_settings.store.lcu.enableRPPurchase", false);
-                SetKey(configObject, "lol.client_settings.store.lcu.enableTransfers", false);
-                SetKey(configObject, "lol.client_settings.store.lcu.enabled", false);
-                SetKey(configObject, "lol.client_settings.store.lcu.playerGiftingNotificationsEnabled", false);
-                SetKey(configObject, "lol.client_settings.store.lcu.useRMS", false);
-                SetKey(configObject, "lol.client_settings.store.customPageFiltersMap", false);
-                SetKey(configObject, "lol.client_settings.store.use_local_storefront", false);
-                SetKey(configObject, "lol.game_client_settings.starshards_purchase_enabled", false);
-                SetKey(configObject, "lol.game_client_settings.starshards_services_enabled", false);
-                SetKey(configObject, "lol.game_client_settings.store_enabled", false);
-                SetNestedKeys(configObject, "lol.client_settings.store.essenceEmporium", "Enabled", false);
-                SetEmptyArrayForConfig(configObject, "lol.client_settings.store.navTabs");
-                SetEmptyArrayForConfig(configObject, "lol.client_settings.store.allowedPurchaseWidgetTypes");
-                SetEmptyArrayForConfig(configObject, "lol.client_settings.store.bundlesUsingPaw");
-                SetEmptyArrayForConfig(configObject, "lol.client_settings.store.customPageFiltersMap");
-            }
-
             SetKey(configObject, "rms.port", LeagueProxy.RmsPort);
             SetKey(configObject, "keystone.player-affinity.playerAffinityServiceURL", $"http://127.0.0.1:{LeagueProxy.GeopassPort}");
             SetKey(configObject, "lol.client_settings.client_navigability.base_url", $"http://127.0.0.1:{LeagueProxy.LcuNavigationPort}");
             SetKey(configObject, "lol.client_settings.player_platform_edge.url", $"http://127.0.0.1:{LeagueProxy.PlatformPort}");
 
-            SetKey(configObject, "lol.client_settings.show_dx11_notification_on_every_startup", false);
+            SetKey(configObject, "keystone.riotgamesapi.telemetry.enable_redaction", false);
             SetKey(configObject, "keystone.age_restriction.enabled", false);
             SetKey(configObject, "keystone.client.feature_flags.lifecycle.backgroundRunning.enabled", false);
             SetKey(configObject, "keystone.client.feature_flags.cpu_memory_warning_report.enabled", false);
@@ -543,6 +518,7 @@ public partial class ConfigProxy
             SetKey(configObject, "lol.game_client_settings.telemetry.standalone.sample_rate", 0);
             SetKey(configObject, "rms.host", "ws://127.0.0.1");
             SetKey(configObject, "rms.allow_bad_cert.enabled", true);
+            SetNestedKeys(configObject, "lol.client_settings.errormonitor", "isEnabled", false);
             SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "applicationID", "");
             SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "clientToken", "");
             SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "isEnabled", false);
@@ -558,7 +534,6 @@ public partial class ConfigProxy
             SetNestedKeys(configObject, "lol.client_settings.sentry_config", "isEnabled", false);
             SetNestedKeys(configObject, "lol.client_settings.sentry_config", "sampleRate", 0);
             SetNestedKeys(configObject, "lol.client_settings.sentry_config", "dsn", "");
-            //ClientVersionOverride(configObject, "keystone.products.league_of_legends.patchlines.live");
             AppendLauncherArguments(configObject, "keystone.products.league_of_legends.patchlines.live");
 
             payloadStr = JsonSerializer.Serialize(configObject);
@@ -625,11 +600,6 @@ public partial class ConfigProxy
                         regionConfig["enabled"] = false;
                     }
                 }
-            }
-            if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.NoStore)
-            {
-                SetNestedKeys(configObject, "lol.client_settings.event_hub.activation", "hubEnabled", false);
-                SetNestedKeys(configObject, "lol.client_settings.yourshop", "Active", false);
             }
             if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobehavior)
             {
@@ -908,6 +878,7 @@ public partial class ConfigProxy
             return _userRegion ?? "";
         }
     }
+
     private static void ClientVersionOverride(JsonNode configObject, string patchline)
     {
         var productNode = configObject?[patchline];
@@ -920,7 +891,7 @@ public partial class ConfigProxy
                 {
                     if (config?["patch_url"] is not null)
                     {
-                        config["patch_url"] = "https://lol.secure.dyn.riotcdn.net/channels/public/releases/B11DAFE3E06B86D5.manifest";
+                        config["patch_url"] = "https://valorant.secure.dyn.riotcdn.net/channels/public/releases/8B7F49AF1C61AE8C.manifest";
                     }
 
                     var patchArtifacts = config?["patch_artifacts"]?.AsArray();
@@ -930,7 +901,7 @@ public partial class ConfigProxy
                         {
                             if (artifact?["type"]?.ToString() == "patch_url")
                             {
-                                artifact["patch_url"] = "https://lol.secure.dyn.riotcdn.net/channels/public/releases/B11DAFE3E06B86D5.manifest";
+                                artifact["patch_url"] = "https://valorant.secure.dyn.riotcdn.net/channels/public/releases/8B7F49AF1C61AE8C.manifest";
                             }
                         }
                     }
