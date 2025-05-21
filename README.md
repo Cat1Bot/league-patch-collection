@@ -12,6 +12,7 @@
 ## Features
 
 By default, this app provides the following enhancements:
+- :white_check_mark: **Auto Accept**: Automatically accepts queue popup by sending the accept request directly to the backend — the UI may still show the popup briefly, but you’re already accepted and will enter champion select without needing to click.
 - :white_check_mark: **Dodge Button**: Exit champ select without having to close client (you still get dodge timer though).
 - :white_check_mark: **Vanguard Disabler**: Access full functionality of the League Client and use Kbot without risk of being banned. Usefull if you want to safely debug the client.
 - :white_check_mark: **TPM bypass**: When you get VAN9001 popup just click the button and it will supress the popup. No idea if this actually lets you into game though.
