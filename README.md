@@ -1,7 +1,7 @@
 > [!NOTE]  
 > DO NOT RUN THIS APP AS ADMINISTRATOR - if you need to use option like Log Cleaner or TPM just click the button and youll get UAC prompt and itl launch background task to do the logic. Running the app itself as admin can cause issues with launching Riot Client and corrupt game install.  
 
-![image](https://github.com/user-attachments/assets/9bb49fd9-3c70-4f5c-82d3-2dcb28c21e3a)
+![image](https://github.com/user-attachments/assets/b782abf7-1494-492d-843f-d1f3801a2166)
 
 # League Patch Collection – Vanguard Disabler & QOL Optimizer for League Client
 
