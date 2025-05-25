@@ -1,5 +1,5 @@
 > [!NOTE]  
-> DO NOT RUN THIS APP AS ADMINISTRATOR - if you need to use option like Log Cleaner or TPM just click the button and youll get UAC prompt and itl launch background task to do the logic. Running the app itself as amdin can cause issues with launching Riot Client and corrupt game install.  
+> DO NOT RUN THIS APP AS ADMINISTRATOR - if you need to use option like Log Cleaner or TPM just click the button and youll get UAC prompt and itl launch background task to do the logic. Running the app itself as admin can cause issues with launching Riot Client and corrupt game install.  
 
 ![image](https://github.com/user-attachments/assets/9bb49fd9-3c70-4f5c-82d3-2dcb28c21e3a)
 
