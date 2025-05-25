@@ -424,17 +424,17 @@ namespace LeaguePatchCollection
 
                 if (args.Contains("--tpm"))
                 {
-                    Trace.WriteLine("[INFO] Running TPM bypass logic in headless mode.");
+                    Trace.WriteLine(" [INFO] Running TPM bypass.");
                     EnumWindows((hWnd, lParam) =>
                     {
                         StringBuilder sb = new StringBuilder(256);
                         GetWindowText(hWnd, sb, sb.Capacity);
                         string windowTitle = sb.ToString();
 
-                        if (windowTitle.StartsWith("VAN900"))
+                        if (windowTitle.StartsWith("VAN"))
                         {
                             ShowWindow(hWnd, SW_HIDE);
-                            Trace.WriteLine($"[INFO] Hiding VAN popup: {windowTitle}");
+                            Trace.WriteLine($" [INFO] Hiding VAN popup: {windowTitle}");
                         }
 
                         return true;
