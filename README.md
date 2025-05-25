@@ -1,7 +1,5 @@
 > [!NOTE]  
-> As of patch 15.3, the Vanguard Bypass feature has been fully patched. It is no longer possible to enter a game with Vanguard disabled due to new server-side checks. As a result, this option has been renamed to **"Disable Vanguard."**  
->  
-> You can still enable this feature to use the full client functionality without VGK. This is useful for running **kbot** or other client debugging tools safely without the risk of being banned.
+> DO NOT RUN THIS APP AS ADMINISTRATOR - if you need to use option like Log Cleaner or TPM just click the button and youll get UAC prompt and itl launch background task to do the logic. Running the app itself as amdin can cause issues with launching Riot Client and corrupt game install.  
 
 ![image](https://github.com/user-attachments/assets/9bb49fd9-3c70-4f5c-82d3-2dcb28c21e3a)
 
@@ -14,7 +12,7 @@
 By default, this app provides the following enhancements:
 - :white_check_mark: **Auto Accept**: Automatically accepts queue popup by sending the accept request directly to the backend — the UI may still show the popup briefly, but you’re already accepted and will enter champion select without needing to click.
 - :white_check_mark: **Dodge Button**: Exit champ select without having to close client (you still get dodge timer though).
-- :white_check_mark: **Vanguard Disabler**: Access full functionality of the League Client and use Kbot without risk of being banned. Usefull if you want to safely debug the client.
+- :white_check_mark: **Vanguard Disabler**: Access full functionality of the League Client and use Kbot without risk of being banned. Usefull if you want to safely debug the client. NOTE: this isnt a bypass, you cannot play without Vanguard yet alone even get past champ select.
 - :white_check_mark: **TPM bypass**: When you get VAN9001 popup just click the button and it will supress the popup. No idea if this actually lets you into game though.
 - :white_check_mark: **Vanguard Uninstaller**: One click uninstall Vanguard completly without needing to confirm "are you sure popup".
 - :white_check_mark: **Disable Store**: Greys out store button and prevents popups and nags related to in-game purchases.
