@@ -929,6 +929,11 @@ public partial class ConfigProxy
                     {
                         var launcherArray = config?["launcher"]?["arguments"]?.AsArray();
                         launcherArray?.Add("--system-yaml-override=Config/system.yaml");
+                        if (LeaguePatchCollectionUX.Headless)
+                        {
+                            launcherArray?.Add("--headless");
+                            Trace.WriteLine(" [INFO] Running Leauge client without the UX process because user ran app with --headless.");
+                        }
                     }
                 }
             }

@@ -19,6 +19,7 @@ namespace LeaguePatchCollection
 {
     public partial class LeaguePatchCollectionUX : Form
     {
+        public static bool Headless { get; private set; } = false;
         public static string? LatestBloatKey { get; private set; }
 
         [DllImport("user32.dll")]
@@ -113,7 +114,13 @@ namespace LeaguePatchCollection
 
         private void CleanLogsButton_Click(object sender, EventArgs e)
         {
-            LogCleaner.ClearLogs();
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = Application.ExecutablePath,
+                Arguments = "--logclean",
+                Verb = "runas",
+                UseShellExecute = true
+            });
         }
 
         private void StartButton_Click(object sender, EventArgs e)
@@ -171,20 +178,13 @@ namespace LeaguePatchCollection
         }
         private void TpmBypass_Click(object sender, EventArgs e)
         {
-            EnumWindows((hWnd, lParam) =>
+            Process.Start(new ProcessStartInfo
             {
-                StringBuilder sb = new StringBuilder(256);
-                GetWindowText(hWnd, sb, sb.Capacity);
-                string windowTitle = sb.ToString();
-
-                if (windowTitle.StartsWith("VAN900"))
-                {
-                    ShowWindow(hWnd, SW_HIDE);
-                    Trace.WriteLine($"[INFO] Hiding VAN popup: {windowTitle}");
-                }
-
-                return true; // continue enumeration
-            }, IntPtr.Zero);
+                FileName = Application.ExecutablePath,
+                Arguments = "--tpm",
+                Verb = "runas",
+                UseShellExecute = true
+            });
         }
         private void DisableVanguard_CheckedChanged(object sender, EventArgs e)
         {
@@ -405,7 +405,7 @@ namespace LeaguePatchCollection
         internal static class Program
         {
             [STAThread]
-            static void Main()
+            static void Main(string[] args)
             {
                 string logDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LeaguePatchCollection");
                 if (!Directory.Exists(logDirectory))
@@ -415,6 +415,38 @@ namespace LeaguePatchCollection
                 string logFilePath = Path.Combine(logDirectory, "debug.log");
                 Trace.Listeners.Add(new TimestampedTextWriterTraceListener(logFilePath));
                 Trace.AutoFlush = true;
+
+                if (args.Contains("--logclean"))
+                {
+                    LogCleaner.ClearLogs();
+                    return;
+                }
+
+                if (args.Contains("--tpm"))
+                {
+                    Trace.WriteLine("[INFO] Running TPM bypass logic in headless mode.");
+                    EnumWindows((hWnd, lParam) =>
+                    {
+                        StringBuilder sb = new StringBuilder(256);
+                        GetWindowText(hWnd, sb, sb.Capacity);
+                        string windowTitle = sb.ToString();
+
+                        if (windowTitle.StartsWith("VAN900"))
+                        {
+                            ShowWindow(hWnd, SW_HIDE);
+                            Trace.WriteLine($"[INFO] Hiding VAN popup: {windowTitle}");
+                        }
+
+                        return true;
+                    }, IntPtr.Zero);
+                    return;
+                }
+
+                if (args.Contains("--headless"))
+                {
+                    Headless = true;
+                }
+
                 ApplicationConfiguration.Initialize();
                 Application.Run(new LeaguePatchCollectionUX());
                 LeagueProxy.Stop();
