@@ -5,11 +5,11 @@
 
 # League Patch Collection – Vanguard Disabler & QOL Optimizer for League Client
 
-**League Patch Collection** is a lightweight C# application designed for Windows to enhance your League of Legends experience. This tool introduces several quality-of-life features and optimizations League Client experience. See command line arguments additional options.
+**League Patch Collection** is a lightweight C# application designed for Windows to enhance your League of Legends experience. This tool introduces several quality-of-life features and optimizations League Client experience.
 
 ## Features
 
-By default, this app provides the following enhancements:
+This app provides the following enhancements/mods:
 - :white_check_mark: **Auto Accept**: Automatically accepts queue popup by sending the accept request directly to the backend — the UI may still show the popup briefly, but you’re already accepted and will enter champion select without needing to click.
 - :white_check_mark: **Dodge Button**: Exit champ select without having to close client (you still get dodge timer though).
 - :white_check_mark: **Vanguard Disabler**: Access full functionality of the League Client and use Kbot without risk of being banned. Usefull if you want to safely debug the client. NOTE: this isnt a bypass, you cannot play without Vanguard yet alone even get past champ select.
