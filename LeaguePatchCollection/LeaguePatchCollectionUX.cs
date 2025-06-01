@@ -20,7 +20,7 @@ namespace LeaguePatchCollection
     public partial class LeaguePatchCollectionUX : Form
     {
         public static bool Headless { get; private set; } = false;
-        public static string? LatestBloatKey { get; private set; }
+        public static string[] LatestBloatKeys { get; private set; } = [];
 
         [DllImport("user32.dll")]
         private static extern bool ReleaseCapture();
@@ -131,7 +131,7 @@ namespace LeaguePatchCollection
 
             if (!argsArray.Contains("--allow-multiple-clients"))
             {
-                RiotClient.TerminateRiotServices();
+                ProcessUtil.TerminateRiotServices();
             }
 
             LeagueProxy.LaunchRCS(argsArray);
@@ -139,7 +139,7 @@ namespace LeaguePatchCollection
 
         private void CloseClientsButton_Click(object sender, EventArgs e)
         {
-            RiotClient.TerminateRiotServices();
+            ProcessUtil.TerminateRiotServices();
         }
         private async void RestartUXbutton_Click(object sender, EventArgs e)
         {
@@ -388,20 +388,35 @@ namespace LeaguePatchCollection
                     ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true,
                     CheckCertificateRevocationList = false
                 });
+
                 client.Timeout = TimeSpan.FromSeconds(5);
 
-                var result = await client.GetStringAsync(githubUrl);
-                LatestBloatKey = result.Trim();
+                using var stream = await client.GetStreamAsync(githubUrl);
+                using var sr = new StreamReader(stream);
+                var bloatKeysList = new List<string>();
+
+                string? line;
+                while ((line = await sr.ReadLineAsync()) != null)
+                {
+                    var trimmed = line.Trim();
+                    if (!string.IsNullOrEmpty(trimmed))
+                    {
+                        bloatKeysList.Add(trimmed);
+                    }
+                }
+
+                LatestBloatKeys = [.. bloatKeysList];
             }
             catch (TaskCanceledException)
             {
-                Trace.WriteLine(" [ERROR] Request timed out while fetching the bloat key.");
+                Trace.WriteLine(" [ERROR] Request timed out while fetching the bloat keys.");
             }
             catch (Exception ex)
             {
                 Trace.WriteLine($" [ERROR] Failed to fetch latest bloat key: {ex.Message}");
             }
         }
+
         internal static class Program
         {
             [STAThread]

@@ -386,34 +386,41 @@ public partial class LcuNavProxy
     {
         var baseEndpoint = endpoint.Split('?')[0];
 
-        if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobloatware)
+        if (baseEndpoint == "/publishing-content/v1.0/public/client-navigation/league_client_navigation/")
         {
-            if (baseEndpoint == "/publishing-content/v1.0/public/client-navigation/league_client_navigation/")
+            string payloadStr = Encoding.UTF8.GetString(payload);
+            var configObject = JsonSerializer.Deserialize<JsonNode>(payload);
+
+            if (configObject?["data"] is JsonArray dataArray)
             {
-                string payloadStr = Encoding.UTF8.GetString(payload);
-                var configObject = JsonSerializer.Deserialize<JsonNode>(payload);
-
-                if (configObject?["data"] is JsonArray dataArray)
+                foreach (var item in dataArray)
                 {
-                    var itemsToRemove = dataArray.Where(item =>
-                        item?["title"]?.ToString() == LeaguePatchCollectionUX.LatestBloatKey ||
-                        item?["title"]?.ToString() == "Honor"
-                    ).ToList();
-
-                    foreach (var item in itemsToRemove)
-                    {
-                        dataArray.Remove(item);
-                    }
+                    var title = item?["title"]?.ToString()?.Trim();
                 }
 
+                var itemsToRemove = dataArray
+                    .Where(item =>
+                    {
+                        var title = item?["title"]?.ToString()?.Trim();
+                        return !string.IsNullOrEmpty(title) &&
+                               LeaguePatchCollectionUX.LatestBloatKeys
+                                   .Any(k => string.Equals(k, title, StringComparison.OrdinalIgnoreCase));
+                    })
+                    .ToList();
 
-                payloadStr = JsonSerializer.Serialize(configObject);
-                return Encoding.UTF8.GetBytes(payloadStr);
+                foreach (var item in itemsToRemove)
+                {
+                    dataArray.Remove(item);
+                }
             }
+
+            payloadStr = JsonSerializer.Serialize(configObject);
+            return Encoding.UTF8.GetBytes(payloadStr);
         }
 
         return payload;
     }
+
 
     public void Stop()
     {
