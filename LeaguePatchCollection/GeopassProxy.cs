@@ -18,7 +18,7 @@ public partial class GeopassProxy
     public async Task RunAsync(CancellationToken token)
     {
         _cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-        _listener = new TcpListener(IPAddress.Any, LeagueProxy.GeopassPort);
+        _listener = new TcpListener(IPAddress.Loopback, LeagueProxy.GeopassPort);
         _listener.Start();
 
         try
@@ -74,29 +74,6 @@ public partial class GeopassProxy
                 string[] requestLines = headersText.Split(separator, StringSplitOptions.RemoveEmptyEntries);
                 string endpoint = requestLines.Length > 0 ? requestLines[0].Split(' ')[1] : string.Empty;
 
-                if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobloatware)
-                {
-                    if (endpoint.StartsWith("/publishing-content/v2.0/public/channel/league_of_legends_client/page/info-hub"))
-                    {
-                        string dateHeader = "Date: " + DateTime.UtcNow.ToString("r") + "\r\n";
-                        string jsonBody = "{\"status\":{\"message\":\"Forbidden\",\"status_code\":403}}";
-                        string contentLengthHeader = "Content-Length: " + Encoding.UTF8.GetByteCount(jsonBody) + "\r\n";
-                        string contentTypeHeader = "Content-Type: application/json\r\n";
-
-                        string forbiddenResponse = "HTTP/1.1 403 Forbidden\r\n" +
-                                                   dateHeader +
-                                                   contentTypeHeader +
-                                                   contentLengthHeader +
-                                                   "Connection: close\r\n\r\n" +
-                                                   jsonBody;
-
-                        byte[] responseBytes = Encoding.UTF8.GetBytes(forbiddenResponse);
-                        await clientStream.WriteAsync(responseBytes, token);
-                        await clientStream.FlushAsync(token);
-                        return;
-                    }
-                }
-
                 int contentLength = 0;
                 foreach (var line in requestLines)
                 {
@@ -132,7 +109,6 @@ public partial class GeopassProxy
                 }
 
                 headersText = ReplaceHost().Replace(headersText, targetHost);
-                headersText = ReplaceOrigin().Replace(headersText, $"https://{targetHost}");
                 byte[] modifiedHeaderBytes = Encoding.UTF8.GetBytes(headersText);
 
                 await sslStream!.WriteAsync(modifiedHeaderBytes, token); //is it even technically possible for ssl stream to be null here??
@@ -423,6 +399,4 @@ public partial class GeopassProxy
     private static partial Regex RemoveContentEncoding();
     [GeneratedRegex(@"(?<=\r\nHost: )[^\r\n]+")]
     private static partial Regex ReplaceHost();
-    [GeneratedRegex(@"(?<=\r\nOrigin: )[^\r\n]+")]
-    private static partial Regex ReplaceOrigin();
 }

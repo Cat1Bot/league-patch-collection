@@ -30,7 +30,7 @@ public partial class ConfigProxy
     public async Task RunAsync(CancellationToken token)
     {
         _cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-        _listener = new TcpListener(IPAddress.Any, LeagueProxy.ConfigPort);
+        _listener = new TcpListener(IPAddress.Loopback, LeagueProxy.ConfigPort);
         _listener.Start();
 
         try
@@ -368,305 +368,282 @@ public partial class ConfigProxy
     }
     private static byte[] ModifyResponsePayload(byte[] payload, string endpoint)
     {
-        var baseEndpoint = endpoint.Split('?')[0];
+        string payloadStr = Encoding.UTF8.GetString(payload);
+        var configObject = JsonSerializer.Deserialize<JsonNode>(payload);
 
-        if (baseEndpoint == "/api/v1/config/public")
+        var GeopassUrlNode = configObject?["keystone.player-affinity.playerAffinityServiceURL"];
+        if (GeopassUrlNode != null)
         {
-            string payloadStr = Encoding.UTF8.GetString(payload);
-            var configObject = JsonSerializer.Deserialize<JsonNode>(payload);
-
-            var GeopassUrlNode = configObject?["keystone.player-affinity.playerAffinityServiceURL"];
-            if (GeopassUrlNode != null)
-            {
-                GeopassUrl = GeopassUrlNode.ToString();
-            }
-
-            if (configObject?["keystone.mailbox.clusters"] is JsonObject MailboxAffinities)
-            {
-                if (MailboxAffinities.DeepClone() is JsonObject originalMailboxAffinities)
-                {
-                    StartBackgroundTaskForMailboxAffinities(originalMailboxAffinities);
-                }
-                var keys = MailboxAffinities.Select(entry => entry.Key).ToArray();
-                foreach (var key in keys)
-                {
-                    MailboxAffinities[key] = $"http://127.0.0.1:{LeagueProxy.MailboxPort}";
-                }
-            }
-
-            var PlatformUrlNode = configObject?["lol.client_settings.player_platform_edge.url"];
-            if (PlatformUrlNode != null)
-            {
-                PlatformUrl = PlatformUrlNode.ToString();
-            }
-
-            var NavUrlNode = configObject?["lol.client_settings.client_navigability.base_url"];
-            if (NavUrlNode != null)
-            {
-                LcuNavigationUrl = NavUrlNode.ToString();
-            }
-
-            if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Novgk)
-            {
-                SetKey(configObject, "anticheat.vanguard.backgroundInstall", false);
-                SetKey(configObject, "anticheat.vanguard.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.restart_required.disabled", true);
-                SetKey(configObject, "keystone.client.feature_flags.vanguardLaunch.disabled", true);
-                SetKey(configObject, "keystone.client.feature_flags.vanguard_attestation.enabled", false);
-                SetKey(configObject, "lol.client_settings.vanguard.enabled", false);
-                SetKey(configObject, "lol.client_settings.vanguard.enabled_embedded", false);
-                SetKey(configObject, "lol.client_settings.vanguard.url", "");
-                RemoveVanguardDependencies(configObject, "keystone.products.league_of_legends.patchlines.live");
-                RemoveVanguardDependencies(configObject, "keystone.products.league_of_legends.patchlines.pbe");
-                RemoveVanguardDependencies(configObject, "keystone.products.valorant.patchlines.live");
-            }
-            if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Legacyhonor)
-            {
-                SetNestedKeys(configObject, "lol.client_settings.honor", "CeremonyV3Enabled", false);
-                SetNestedKeys(configObject, "lol.client_settings.honor", "Enabled", true);
-                SetNestedKeys(configObject, "lol.client_settings.honor", "HonorEndpointsV2Enabled", false);
-                SetNestedKeys(configObject, "lol.client_settings.honor", "HonorSuggestionsEnabled", true);
-                SetNestedKeys(configObject, "lol.client_settings.honor", "HonorVisibilityEnabled", true);
-                SetNestedKeys(configObject, "lol.client_settings.honor", "SecondsToVote", 90);
-            }
-            if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Namebypass)
-            {
-                SetKey(configObject, "keystone.client.feature_flags.dismissible_name_change_modal.enabled", true);
-                SetKey(configObject, "keystone.client.feature_flags.flaggedNameModal.disabled", true);
-                SetKey(configObject, "keystone.client.feature_flags.riot_id_required_modal.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.username_required_modal.enabled", false);
-            }
-            if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobloatware)
-            {
-
-                SetKey(configObject, "lol.client_settings.loot.standalone_mythic_shop", false);
-                SetKey(configObject, "keystone.client.feature_flags.playerReportingMailboxIntegration.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.playerReportingPasIntegration.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.playerReportingReporterFeedback.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.arcane_event.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.arcane_event_live.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.arcane_event_prelaunch.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.arcane_event_premier.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.arcane_theme.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.mfa_notification.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.autoPatch.disabled", true);
-                SetKey(configObject, "keystone.client.feature_flags.pending_consent_modal.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.pending_forget_modal.enabled", false);
-                SetKey(configObject, "games_library.special_events.enabled", false);
-                SetKey(configObject, "riot.eula.agreementBaseURI", "");
-                SetKey(configObject, "keystone.client.feature_flags.background_mode_patching.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.product_update_scanner.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.privacyPolicy.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.regionlessLoginInfoTooltip.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.keystone_login_splash_video.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.qrcode_modal.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.riot_mobile_special_event.enabled", false);
-                SetKey(configObject, "lol.client_settings.store.hidePurchaseModalQuantityControl", true);
-                SetKey(configObject, "lol.client_settings.startup.should_show_progress_bar_text", false);
-                SetKey(configObject, "lol.client_settings.paw.enableRPTopUp", false);
-                SetKey(configObject, "lol.client_settings.clash.eosCelebrationEnabled", false);
-                SetKey(configObject, "lol.client_settings.missions.upsell_opens_event_hub", false);
-                SetKey(configObject, "lol.client_settings.client_navigability.info_hub_disabled", true);
-                SetKey(configObject, "lol.client_settings.remedy.is_verbal_abuse_remedy_modal_enabled", false);
-                SetKey(configObject, "keystone.rso-mobile-ui.accountCreationTosAgreement", false);
-                SetKey(configObject, "lol.client_settings.display_legacy_patch_numbers", true);
-            }
-
-            if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobehavior)
-            {
-                SetKey(configObject, "keystone.client.feature_flags.penaltyNotifications.enabled", false);
-                SetKey(configObject, "lol.client_settings.reputation_based_honor_enabled", false);
-            }
-
-            SetKey(configObject, "rms.port", LeagueProxy.RmsPort);
-            SetKey(configObject, "keystone.player-affinity.playerAffinityServiceURL", $"http://127.0.0.1:{LeagueProxy.GeopassPort}");
-            SetKey(configObject, "lol.client_settings.client_navigability.base_url", $"http://127.0.0.1:{LeagueProxy.LcuNavigationPort}");
-            SetKey(configObject, "lol.client_settings.player_platform_edge.url", $"http://127.0.0.1:{LeagueProxy.PlatformPort}");
-
-            SetKey(configObject, "keystone.riotgamesapi.telemetry.enable_redaction", false);
-            SetKey(configObject, "keystone.age_restriction.enabled", false);
-            SetKey(configObject, "keystone.client.feature_flags.lifecycle.backgroundRunning.enabled", false);
-            SetKey(configObject, "keystone.client.feature_flags.cpu_memory_warning_report.enabled", false);
-            SetKey(configObject, "keystone.client.feature_flags.launch_on_computer_start.enabled", false);
-            SetKey(configObject, "keystone.client.feature_flags.open_telemetry_sender.enabled", false);
-            SetKey(configObject, "keystone.client.feature_flags.quick_actions.enabled", true);
-            SetKey(configObject, "keystone.client.feature_flags.self_update_in_background.enabled", false);
-            SetKey(configObject, "keystone.client_config.diagnostics_enabled", false);
-            SetKey(configObject, "keystone.telemetry.heartbeat_custom_metrics", false);
-            SetKey(configObject, "keystone.riotgamesapi.telemetry.heartbeat_products", false);
-            SetKey(configObject, "keystone.riotgamesapi.telemetry.heartbeat_voice_chat_metrics", false);
-            SetKey(configObject, "keystone.riotgamesapi.telemetry.newrelic_events_v2_enabled", false);
-            SetKey(configObject, "keystone.riotgamesapi.telemetry.newrelic_metrics_v1_enabled", false);
-            SetKey(configObject, "keystone.riotgamesapi.telemetry.newrelic_schemaless_events_v2_enabled", false);
-            SetKey(configObject, "keystone.riotgamesapi.telemetry.opentelemetry_events_enabled", false);
-            SetKey(configObject, "keystone.riotgamesapi.telemetry.opentelemetry_uri_events", "");
-            SetKey(configObject, "keystone.riotgamesapi.telemetry.singular_v1_enabled", false);
-            SetKey(configObject, "keystone.telemetry.heartbeat_products", false);
-            SetKey(configObject, "keystone.telemetry.heartbeat_voice_chat_metrics", false);
-            SetKey(configObject, "keystone.telemetry.send_error_telemetry_metrics", false);
-            SetKey(configObject, "keystone.telemetry.send_product_session_start_metrics", false);
-            SetKey(configObject, "keystone.telemetry.singular_v1_enabled", false);
-            SetKey(configObject, "lol.client_settings.startup.should_wait_for_home_hubs", false);
-            SetKey(configObject, "lol.game_client_settings.app_config.singular_enabled", false);
-            SetKey(configObject, "lol.game_client_settings.low_memory_reporting_enabled", false);
-            SetKey(configObject, "lol.game_client_settings.missions.enabled", false);
-            SetKey(configObject, "lol.game_client_settings.cap_orders_metrics_enabled", false);
-            SetKey(configObject, "lol.game_client_settings.platform_stats_enabled", false);
-            SetKey(configObject, "lol.game_client_settings.telemetry.standalone.long_frame_cooldown", 999);
-            SetKey(configObject, "lol.game_client_settings.telemetry.standalone.long_frame_min_time", 99999);
-            SetKey(configObject, "lol.game_client_settings.telemetry.standalone.nr_sample_rate", 0);
-            SetKey(configObject, "lol.game_client_settings.telemetry.standalone.sample_rate", 0);
-            SetKey(configObject, "rms.host", "ws://127.0.0.1");
-            SetKey(configObject, "rms.allow_bad_cert.enabled", true);
-            SetNestedKeys(configObject, "lol.client_settings.errormonitor", "isEnabled", false);
-            SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "applicationID", "");
-            SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "clientToken", "");
-            SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "isEnabled", false);
-            SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "service", "");
-            SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "sessionReplaySampleRate", 0);
-            SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "sessionSampleRate", 0);
-            SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "site", "");
-            SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "telemetrySampleRate", 0);
-            SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "traceSampleRate", 0);
-            SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "trackLongTasks", false);
-            SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "trackResources", false);
-            SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "trackUserInteractions", false);
-            SetNestedKeys(configObject, "lol.client_settings.sentry_config", "isEnabled", false);
-            SetNestedKeys(configObject, "lol.client_settings.sentry_config", "sampleRate", 0);
-            SetNestedKeys(configObject, "lol.client_settings.sentry_config", "dsn", "");
-            AppendLauncherArguments(configObject, "keystone.products.league_of_legends.patchlines.live");
-
-            payloadStr = JsonSerializer.Serialize(configObject);
-            return Encoding.UTF8.GetBytes(payloadStr);
-        }
-        else if (baseEndpoint == "/api/v1/config/player")
-        {
-            string payloadStr = Encoding.UTF8.GetString(payload);
-            var configObject = JsonSerializer.Deserialize<JsonNode>(payload);
-
-            if (configObject?["rms.affinities"] is JsonObject rmsAffinities)
-            {
-                var originalRmsAffinities = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(rmsAffinities));
-
-                if (originalRmsAffinities != null)
-                {
-                    StartBackgroundTaskForRmsAffinities(originalRmsAffinities);
-                }
-                var keys = rmsAffinities.Select(entry => entry.Key).ToArray();
-                foreach (var key in keys)
-                {
-                    rmsAffinities[key] = "ws://127.0.0.1";
-                }
-            }
-            if (configObject?["chat.affinities"] is JsonObject chatAffinities)
-            {
-                var originalChatAffinities = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(chatAffinities));
-
-                if (originalChatAffinities != null)
-                {
-                    StartBackgroundTaskForChatAffinities(originalChatAffinities);
-                }
-                var keys = chatAffinities.Select(entry => entry.Key).ToArray();
-                foreach (var key in keys)
-                {
-                    chatAffinities[key] = "127.0.0.1";
-                }
-            }
-            if (configObject?["keystone.player-behavior-token.fetch_url_by_affinities"] is JsonObject pbtokenAffinities)
-            {
-                var originalPbTokenAffinities = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(pbtokenAffinities));
-
-                if (originalPbTokenAffinities != null)
-                {
-                    StartBackgroundTaskForPbTokenAffinities(originalPbTokenAffinities);
-                }
-                var keys = pbtokenAffinities.Select(entry => entry.Key).ToArray();
-                foreach (var key in keys)
-                {
-                    pbtokenAffinities[key] = $"http://127.0.0.1:{LeagueProxy.PbTokenPort}";
-                }
-            }
-            var leagueEdgeUrlNode = configObject?["lol.client_settings.league_edge.url"];
-            if (leagueEdgeUrlNode != null)
-            {
-                LeagueEdgeUrl = leagueEdgeUrlNode.ToString();
-            }
-            if (configObject?["keystone.loyalty.config"] is JsonObject loyaltyConfig)
-            {
-                foreach (var region in loyaltyConfig)
-                {
-                    if (region.Value is JsonObject regionConfig && regionConfig.ContainsKey("enabled"))
-                    {
-                        regionConfig["enabled"] = false;
-                    }
-                }
-            }
-            if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobehavior)
-            {
-                SetKey(configObject, "keystone.client.feature_flags.gaWarning.enabled", false);
-                SetKey(configObject, "chat.require_pbtoken_for_muc.enabled", false);
-                SetKey(configObject, "chat.send_restrictions_messages_mid_chat.enabled", false);
-                SetKey(configObject, "chat.send_restrictions_messages_on_muc_entry.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.playerBehaviorToken.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.playerReporting.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.restriction.enabled", false);
-            }
-            if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobloatware)
-            {
-                SetNestedKeys(configObject, "lol.client_settings.league_edge.enabled_services", "Missions", false);
-                SetNestedKeys(configObject, "lol.client_settings.deepLinks", "launchLorEnabled", false);
-                SetKey(configObject, "chat.disable_chat_restriction_muted_system_message", true);
-                SetKey(configObject, "keystone.client.feature_flags.home_page_route.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.campaign-hub.enabled", false);
-                SetKey(configObject, "keystone.client.feature_flags.playerReporting.enabled", false);
-
-                if (configObject?["lol.client_settings.nacho.active_banners"] is JsonObject activeBannersConfig &&
-                    activeBannersConfig.ContainsKey("enabled"))
-                {
-                    activeBannersConfig["enabled"] = false;
-                }
-            }
-             
-            SetKey(configObject, "chat.port", LeagueProxy.ChatPort);
-            SetKey(configObject, "lol.client_settings.league_edge.url", $"http://127.0.0.1:{LeagueProxy.LedgePort}");
-
-            if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Novgk)
-            { 
-                SetKey(configObject, "lion.vanguard.required", false);
-                SetKey(configObject, "lion.vanguard.netrequired", false);
-                RemoveVanguardDependencies(configObject, "keystone.products.lion.patchlines.live");
-            }
-
-            SetKey(configObject, "lion.analytics.enable", false);
-            SetKey(configObject, "chat.allow_bad_cert.enabled", true);
-            SetKey(configObject, "chat.allow_bad_cert.enabled", true);
-            SetKey(configObject, "chat.allow_bad_cert.enabled", true);
-            SetKey(configObject, "chat.allow_bad_cert.enabled", true);
-
-            SetKey(configObject, "chat.allow_bad_cert.enabled", true);
-            SetKey(configObject, "chat.host", "127.0.0.1");
-            SetKey(configObject, "chat.use_tls.enabled", false);
-            SetKey(configObject, "chat.force_filter.enabled", false);
-            SetKey(configObject, "keystone.client.feature_flags.chrome_devtools.enabled", true);
-            SetKey(configObject, "keystone.riotgamesapi.telemetry.endpoint.send_deprecated", false);
-            SetKey(configObject, "keystone.riotgamesapi.telemetry.endpoint.send_failure", false);
-            SetKey(configObject, "keystone.riotgamesapi.telemetry.endpoint.send_success", false);
-            SetKey(configObject, "keystone.telemetry.metrics_enabled", false);
-            SetKey(configObject, "keystone.telemetry.newrelic_events_v2_enabled", false);
-            SetKey(configObject, "keystone.telemetry.newrelic_metrics_v1_enabled", false);
-            SetKey(configObject, "keystone.telemetry.newrelic_schemaless_events_v2_enabled", false);
-            SetKey(configObject, "lol.client_settings.metrics.enabled", false);
-            SetKey(configObject, "lol.client_settings.player_behavior.display_v1_ban_notifications", true);
-            SetKey(configObject, "lol.game_client_settings.logging.enable_http_public_logs", false);
-            SetKey(configObject, "lol.game_client_settings.logging.enable_rms_public_logs", false);
-            SetEmptyArrayForConfig(configObject, "chat.xmpp_stanza_response_telemetry_allowed_codes");
-            SetEmptyArrayForConfig(configObject, "chat.xmpp_stanza_response_telemetry_allowed_iqids");
-
-            payloadStr = JsonSerializer.Serialize(configObject);
-            return Encoding.UTF8.GetBytes(payloadStr);
+            GeopassUrl = GeopassUrlNode.ToString();
         }
 
-        return payload;
+        if (configObject?["keystone.mailbox.clusters"] is JsonObject MailboxAffinities)
+        {
+            if (MailboxAffinities.DeepClone() is JsonObject originalMailboxAffinities)
+            {
+                StartBackgroundTaskForMailboxAffinities(originalMailboxAffinities);
+            }
+            var keys = MailboxAffinities.Select(entry => entry.Key).ToArray();
+            foreach (var key in keys)
+            {
+                MailboxAffinities[key] = $"http://127.0.0.1:{LeagueProxy.MailboxPort}";
+            }
+        }
+
+        var PlatformUrlNode = configObject?["lol.client_settings.player_platform_edge.url"];
+        if (PlatformUrlNode != null)
+        {
+            PlatformUrl = PlatformUrlNode.ToString();
+        }
+
+        var NavUrlNode = configObject?["lol.client_settings.client_navigability.base_url"];
+        if (NavUrlNode != null)
+        {
+            LcuNavigationUrl = NavUrlNode.ToString();
+        }
+
+        if (configObject?["rms.affinities"] is JsonObject rmsAffinities)
+        {
+            var originalRmsAffinities = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(rmsAffinities));
+
+            if (originalRmsAffinities != null)
+            {
+                StartBackgroundTaskForRmsAffinities(originalRmsAffinities);
+            }
+            var keys = rmsAffinities.Select(entry => entry.Key).ToArray();
+            foreach (var key in keys)
+            {
+                rmsAffinities[key] = "ws://127.0.0.1";
+            }
+        }
+
+        if (configObject?["chat.affinities"] is JsonObject chatAffinities)
+        {
+            var originalChatAffinities = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(chatAffinities));
+
+            if (originalChatAffinities != null)
+            {
+                StartBackgroundTaskForChatAffinities(originalChatAffinities);
+            }
+            var keys = chatAffinities.Select(entry => entry.Key).ToArray();
+            foreach (var key in keys)
+            {
+                chatAffinities[key] = "127.0.0.1";
+            }
+        }
+
+        if (configObject?["keystone.player-behavior-token.fetch_url_by_affinities"] is JsonObject pbtokenAffinities)
+        {
+            var originalPbTokenAffinities = JsonSerializer.Deserialize<JsonObject>(JsonSerializer.Serialize(pbtokenAffinities));
+
+            if (originalPbTokenAffinities != null)
+            {
+                StartBackgroundTaskForPbTokenAffinities(originalPbTokenAffinities);
+            }
+            var keys = pbtokenAffinities.Select(entry => entry.Key).ToArray();
+            foreach (var key in keys)
+            {
+                pbtokenAffinities[key] = $"http://127.0.0.1:{LeagueProxy.PbTokenPort}";
+            }
+        }
+
+        var leagueEdgeUrlNode = configObject?["lol.client_settings.league_edge.url"];
+        if (leagueEdgeUrlNode != null)
+        {
+            LeagueEdgeUrl = leagueEdgeUrlNode.ToString();
+        }
+
+        if (configObject?["keystone.loyalty.config"] is JsonObject loyaltyConfig)
+        {
+            foreach (var region in loyaltyConfig)
+            {
+                if (region.Value is JsonObject regionConfig && regionConfig.ContainsKey("enabled"))
+                {
+                    regionConfig["enabled"] = false;
+                }
+            }
+        }
+
+        if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Novgk)
+        {
+            SetKey(configObject, "anticheat.vanguard.backgroundInstall", false);
+            SetKey(configObject, "anticheat.vanguard.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.restart_required.disabled", true);
+            SetKey(configObject, "keystone.client.feature_flags.vanguardLaunch.disabled", true);
+            SetKey(configObject, "keystone.client.feature_flags.vanguard_attestation.enabled", false);
+            SetKey(configObject, "lol.client_settings.vanguard.enabled", false);
+            SetKey(configObject, "lol.client_settings.vanguard.enabled_embedded", false);
+            SetKey(configObject, "lol.client_settings.vanguard.url", "");
+            SetKey(configObject, "lion.vanguard.required", false);
+            SetKey(configObject, "lion.vanguard.netrequired", false);
+            RemoveVanguardDependencies(configObject, "keystone.products.lion.patchlines.live");
+            RemoveVanguardDependencies(configObject, "keystone.products.league_of_legends.patchlines.live");
+            RemoveVanguardDependencies(configObject, "keystone.products.league_of_legends.patchlines.pbe");
+            RemoveVanguardDependencies(configObject, "keystone.products.valorant.patchlines.live");
+        }
+
+        if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Legacyhonor)
+        {
+            SetNestedKeys(configObject, "lol.client_settings.honor", "CeremonyV3Enabled", false);
+            SetNestedKeys(configObject, "lol.client_settings.honor", "Enabled", true);
+            SetNestedKeys(configObject, "lol.client_settings.honor", "HonorEndpointsV2Enabled", false);
+            SetNestedKeys(configObject, "lol.client_settings.honor", "HonorSuggestionsEnabled", true);
+            SetNestedKeys(configObject, "lol.client_settings.honor", "HonorVisibilityEnabled", true);
+            SetNestedKeys(configObject, "lol.client_settings.honor", "SecondsToVote", 90);
+        }
+
+        if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Namebypass)
+        {
+            SetKey(configObject, "keystone.client.feature_flags.dismissible_name_change_modal.enabled", true);
+            SetKey(configObject, "keystone.client.feature_flags.flaggedNameModal.disabled", true);
+            SetKey(configObject, "keystone.client.feature_flags.riot_id_required_modal.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.username_required_modal.enabled", false);
+        }
+
+        if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobloatware)
+        {
+            if (configObject?["lol.client_settings.nacho.active_banners"] is JsonObject activeBannersConfig &&
+                activeBannersConfig.ContainsKey("enabled"))
+            {
+                activeBannersConfig["enabled"] = false;
+            }
+
+            SetKey(configObject, "lol.client_settings.champ_select.enable_ability_previews", false);
+            SetKey(configObject, "chat.disable_chat_restriction_muted_system_message", true);
+            SetKey(configObject, "keystone.client.feature_flags.home_page_route.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.campaign-hub.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.playerReporting.enabled", false);
+            SetKey(configObject, "lol.client_settings.loot.standalone_mythic_shop", false);
+            SetKey(configObject, "keystone.client.feature_flags.playerReportingMailboxIntegration.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.playerReportingPasIntegration.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.playerReportingReporterFeedback.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.arcane_event.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.arcane_event_live.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.arcane_event_prelaunch.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.arcane_event_premier.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.arcane_theme.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.mfa_notification.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.autoPatch.disabled", true);
+            SetKey(configObject, "keystone.client.feature_flags.pending_consent_modal.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.pending_forget_modal.enabled", false);
+            SetKey(configObject, "games_library.special_events.enabled", false);
+            SetKey(configObject, "riot.eula.agreementBaseURI", "");
+            SetKey(configObject, "keystone.client.feature_flags.background_mode_patching.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.product_update_scanner.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.privacyPolicy.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.regionlessLoginInfoTooltip.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.keystone_login_splash_video.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.qrcode_modal.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.riot_mobile_special_event.enabled", false);
+            SetKey(configObject, "lol.client_settings.store.hidePurchaseModalQuantityControl", true);
+            SetKey(configObject, "lol.client_settings.startup.should_show_progress_bar_text", false);
+            SetKey(configObject, "lol.client_settings.paw.enableRPTopUp", false);
+            SetKey(configObject, "lol.client_settings.clash.eosCelebrationEnabled", false);
+            SetKey(configObject, "lol.client_settings.missions.upsell_opens_event_hub", false);
+            SetKey(configObject, "lol.client_settings.client_navigability.info_hub_disabled", true);
+            SetKey(configObject, "lol.client_settings.remedy.is_verbal_abuse_remedy_modal_enabled", false);
+            SetKey(configObject, "keystone.rso-mobile-ui.accountCreationTosAgreement", false);
+            SetKey(configObject, "lol.client_settings.display_legacy_patch_numbers", true);
+            SetNestedKeys(configObject, "lol.client_settings.league_edge.enabled_services", "Missions", false);
+            SetNestedKeys(configObject, "lol.client_settings.deepLinks", "launchLorEnabled", false);
+        }
+
+        if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobehavior)
+        {
+            SetKey(configObject, "keystone.client.feature_flags.penaltyNotifications.enabled", false);
+            SetKey(configObject, "lol.client_settings.reputation_based_honor_enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.gaWarning.enabled", false);
+            SetKey(configObject, "chat.require_pbtoken_for_muc.enabled", false);
+            SetKey(configObject, "chat.send_restrictions_messages_mid_chat.enabled", false);
+            SetKey(configObject, "chat.send_restrictions_messages_on_muc_entry.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.playerBehaviorToken.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.playerReporting.enabled", false);
+            SetKey(configObject, "keystone.client.feature_flags.restriction.enabled", false);
+        }
+
+        SetKey(configObject, "rms.port", LeagueProxy.RmsPort);
+        SetKey(configObject, "chat.port", LeagueProxy.ChatPort);
+        SetKey(configObject, "keystone.player-affinity.playerAffinityServiceURL", $"http://127.0.0.1:{LeagueProxy.GeopassPort}");
+        SetKey(configObject, "lol.client_settings.league_edge.url", $"http://127.0.0.1:{LeagueProxy.LedgePort}");
+        SetKey(configObject, "lol.client_settings.client_navigability.base_url", $"http://127.0.0.1:{LeagueProxy.LcuNavigationPort}");
+        SetKey(configObject, "lol.client_settings.player_platform_edge.url", $"http://127.0.0.1:{LeagueProxy.PlatformPort}");
+
+        SetKey(configObject, "lion.analytics.enable", false);
+        SetKey(configObject, "chat.allow_bad_cert.enabled", true);
+        SetKey(configObject, "chat.host", "127.0.0.1");
+        SetKey(configObject, "chat.use_tls.enabled", false);
+        SetKey(configObject, "chat.force_filter.enabled", false);
+        SetKey(configObject, "keystone.client.feature_flags.chrome_devtools.enabled", true);
+        SetKey(configObject, "keystone.riotgamesapi.telemetry.endpoint.send_deprecated", false);
+        SetKey(configObject, "keystone.riotgamesapi.telemetry.endpoint.send_failure", false);
+        SetKey(configObject, "keystone.riotgamesapi.telemetry.endpoint.send_success", false);
+        SetKey(configObject, "keystone.telemetry.metrics_enabled", false);
+        SetKey(configObject, "keystone.telemetry.newrelic_events_v2_enabled", false);
+        SetKey(configObject, "keystone.telemetry.newrelic_metrics_v1_enabled", false);
+        SetKey(configObject, "keystone.telemetry.newrelic_schemaless_events_v2_enabled", false);
+        SetKey(configObject, "lol.client_settings.metrics.enabled", false);
+        SetKey(configObject, "lol.client_settings.player_behavior.display_v1_ban_notifications", true);
+        SetKey(configObject, "lol.game_client_settings.logging.enable_http_public_logs", false);
+        SetKey(configObject, "lol.game_client_settings.logging.enable_rms_public_logs", false);
+        SetKey(configObject, "keystone.riotgamesapi.telemetry.enable_redaction", false);
+        SetKey(configObject, "keystone.age_restriction.enabled", false);
+        SetKey(configObject, "keystone.client.feature_flags.lifecycle.backgroundRunning.enabled", false);
+        SetKey(configObject, "keystone.client.feature_flags.cpu_memory_warning_report.enabled", false);
+        SetKey(configObject, "keystone.client.feature_flags.launch_on_computer_start.enabled", false);
+        SetKey(configObject, "keystone.client.feature_flags.open_telemetry_sender.enabled", false);
+        SetKey(configObject, "keystone.client.feature_flags.quick_actions.enabled", true);
+        SetKey(configObject, "keystone.client.feature_flags.self_update_in_background.enabled", false);
+        SetKey(configObject, "keystone.client_config.diagnostics_enabled", false);
+        SetKey(configObject, "keystone.telemetry.heartbeat_custom_metrics", false);
+        SetKey(configObject, "keystone.riotgamesapi.telemetry.heartbeat_products", false);
+        SetKey(configObject, "keystone.riotgamesapi.telemetry.heartbeat_voice_chat_metrics", false);
+        SetKey(configObject, "keystone.riotgamesapi.telemetry.newrelic_events_v2_enabled", false);
+        SetKey(configObject, "keystone.riotgamesapi.telemetry.newrelic_metrics_v1_enabled", false);
+        SetKey(configObject, "keystone.riotgamesapi.telemetry.newrelic_schemaless_events_v2_enabled", false);
+        SetKey(configObject, "keystone.riotgamesapi.telemetry.opentelemetry_events_enabled", false);
+        SetKey(configObject, "keystone.riotgamesapi.telemetry.opentelemetry_uri_events", "");
+        SetKey(configObject, "keystone.riotgamesapi.telemetry.singular_v1_enabled", false);
+        SetKey(configObject, "keystone.telemetry.heartbeat_products", false);
+        SetKey(configObject, "keystone.telemetry.heartbeat_voice_chat_metrics", false);
+        SetKey(configObject, "keystone.telemetry.send_error_telemetry_metrics", false);
+        SetKey(configObject, "keystone.telemetry.send_product_session_start_metrics", false);
+        SetKey(configObject, "keystone.telemetry.singular_v1_enabled", false);
+        SetKey(configObject, "lol.client_settings.startup.should_wait_for_home_hubs", false);
+        SetKey(configObject, "lol.game_client_settings.app_config.singular_enabled", false);
+        SetKey(configObject, "lol.game_client_settings.low_memory_reporting_enabled", false);
+        SetKey(configObject, "lol.game_client_settings.missions.enabled", false);
+        SetKey(configObject, "lol.game_client_settings.cap_orders_metrics_enabled", false);
+        SetKey(configObject, "lol.game_client_settings.platform_stats_enabled", false);
+        SetKey(configObject, "lol.game_client_settings.telemetry.standalone.long_frame_cooldown", 999);
+        SetKey(configObject, "lol.game_client_settings.telemetry.standalone.long_frame_min_time", 99999);
+        SetKey(configObject, "lol.game_client_settings.telemetry.standalone.nr_sample_rate", 0);
+        SetKey(configObject, "lol.game_client_settings.telemetry.standalone.sample_rate", 0);
+        SetKey(configObject, "rms.host", "ws://127.0.0.1");
+        SetKey(configObject, "rms.allow_bad_cert.enabled", true);
+        SetNestedKeys(configObject, "lol.client_settings.errormonitor", "isEnabled", false);
+        SetNestedKeys(configObject, "lol.client_settings.errormonitor", "isEnabledFoundation", false);
+        SetNestedKeys(configObject, "lol.client_settings.errormonitor", "isEnabledUX", false);
+        SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "applicationID", "");
+        SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "clientToken", "");
+        SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "isEnabled", false);
+        SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "service", "");
+        SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "sessionReplaySampleRate", 0);
+        SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "sessionSampleRate", 0);
+        SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "site", "");
+        SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "telemetrySampleRate", 0);
+        SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "traceSampleRate", 0);
+        SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "trackLongTasks", false);
+        SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "trackResources", false);
+        SetNestedKeys(configObject, "lol.client_settings.datadog_rum_config", "trackUserInteractions", false);
+        SetNestedKeys(configObject, "lol.client_settings.sentry_config", "isEnabled", false);
+        SetNestedKeys(configObject, "lol.client_settings.sentry_config", "sampleRate", 0);
+        SetNestedKeys(configObject, "lol.client_settings.sentry_config", "dsn", "");
+        AppendLauncherArguments(configObject, "keystone.products.league_of_legends.patchlines.live");
+        SetEmptyArrayForConfig(configObject, "chat.xmpp_stanza_response_telemetry_allowed_codes");
+        SetEmptyArrayForConfig(configObject, "chat.xmpp_stanza_response_telemetry_allowed_iqids");
+
+        payloadStr = JsonSerializer.Serialize(configObject);
+        return Encoding.UTF8.GetBytes(payloadStr);
     }
 
     public void Stop()

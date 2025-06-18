@@ -17,7 +17,7 @@ namespace LeaguePatchCollection
         public async Task RunAsync(CancellationToken token)
         {
             _cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            _listener = new TcpListener(IPAddress.Any, LeagueProxy.RtmpPort);
+            _listener = new TcpListener(IPAddress.Loopback, LeagueProxy.RtmpPort);
             _listener.Start();
             try
             {

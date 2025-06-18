@@ -21,7 +21,7 @@ public partial class PlatformProxy
     public async Task RunAsync(CancellationToken token)
     {
         _cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-        _listener = new TcpListener(IPAddress.Any, LeagueProxy.PlatformPort);
+        _listener = new TcpListener(IPAddress.Loopback, LeagueProxy.PlatformPort);
         _listener.Start();
 
         try

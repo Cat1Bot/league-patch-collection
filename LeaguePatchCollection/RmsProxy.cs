@@ -18,7 +18,7 @@ namespace LeaguePatchCollection
         public async Task RunAsync(CancellationToken token)
         {
             _cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            _listener = new TcpListener(IPAddress.Any, LeagueProxy.RmsPort);
+            _listener = new TcpListener(IPAddress.Loopback, LeagueProxy.RmsPort);
             _listener.Start();
 
             try
@@ -228,22 +228,19 @@ namespace LeaguePatchCollection
 
                         if (RankedRestriction().IsMatch(txt))
                         {
-                            Trace.WriteLine("[Blocked GZIP message by RankedRestriction]");
+                            Trace.WriteLine(" [INFO] Supressed forced rank restriction popup.");
                             continue;
                         }
                         else if (NoClientClose().IsMatch(txt))
                         {
-                            Trace.WriteLine("[Blocked GZIP message by NoClientClose]");
+                            Trace.WriteLine(" [INFO] Prevented client forced shutdown due to Vanguard detection while in-game.");
                             continue;
                         }
-                        else if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.AutoAccept && txt.Contains("\\\"autoAccept\\\":false"))
+                        else if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.AutoAccept && AfkCheck().IsMatch(txt))
                         {
-                            txt = Regex.Replace(
-                                txt,
-                                @"(\\?""autoAccept\\?""\s*:\s*)false",
-                                "$1true"
-                            );
-                            Trace.WriteLine($" [INFO] Patched RMS to auto-accept queue.");
+                            txt = AutoAccept().Replace(txt, "$1true"
+);
+                            Trace.WriteLine($" [INFO] auto-accepted queue.");
                         }
 
                         newPayload = Encoding.UTF8.GetBytes(txt);
@@ -251,12 +248,13 @@ namespace LeaguePatchCollection
                     else
                     {
                         string orig = Encoding.UTF8.GetString(payload);
-                        if (orig.Contains("\"subject\":\"rms:gzip\""))
+                        if (GzipFind().IsMatch(orig))
                         {
-                            string replaced = orig.Replace("\"enabled\":\"true\"", "\"enabled\":\"false\"");
-                            Trace.WriteLine($"[Rewritten Subject] {replaced}");
+                            string replaced = DisableCompression().Replace(orig, "\"enabled\":\"false\""
+);
                             newPayload = Encoding.UTF8.GetBytes(replaced);
                         }
+
                         else
                         {
                             newPayload = payload;
@@ -288,5 +286,13 @@ namespace LeaguePatchCollection
         private static partial Regex RankedRestriction();
         [GeneratedRegex(@"GAMEFLOW_EVENT.PLAYER_KICKED.VANGUARD")]
         private static partial Regex NoClientClose();
+        [GeneratedRegex(@"AFK_CHECK")]
+        private static partial Regex AfkCheck();
+        [GeneratedRegex(@"(\\?""autoAccept\\?""\s*:\s*)false")]
+        private static partial Regex AutoAccept();
+        [GeneratedRegex(@"""subject""\s*:\s*""rms:gzip""")]
+        private static partial Regex GzipFind();
+        [GeneratedRegex(@"""enabled""\s*:\s*""true""")]
+        private static partial Regex DisableCompression();
     }
 }

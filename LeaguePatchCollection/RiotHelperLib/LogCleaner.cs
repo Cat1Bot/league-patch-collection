@@ -13,6 +13,7 @@ public class LogCleaner
 {
     public static void ClearLogs()
     {
+        ProcessUtil.TerminateRiotServices();
         if (OperatingSystem.IsWindows())
         {
             if (!IsRunningAsAdmin())

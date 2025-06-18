@@ -18,7 +18,7 @@ public partial class PbTokenProxy
     public async Task RunAsync(CancellationToken token)
     {
         _cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-        _listener = new TcpListener(IPAddress.Any, LeagueProxy.PbTokenPort);
+        _listener = new TcpListener(IPAddress.Loopback, LeagueProxy.PbTokenPort);
         _listener.Start();
 
         try
@@ -361,8 +361,6 @@ public partial class PbTokenProxy
 
     private static byte[] ModifyResponsePayload(byte[] payload, string endpoint)
     {
-        var baseEndpoint = endpoint.Split('?')[0];
-        //no response modifications needed for mailbox for right now
         return payload;
     }
 

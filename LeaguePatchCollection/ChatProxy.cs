@@ -18,7 +18,7 @@ namespace LeaguePatchCollection
         public async Task RunAsync(CancellationToken token)
         {
             _cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            _listener = new TcpListener(IPAddress.Any, LeagueProxy.ChatPort);
+            _listener = new TcpListener(IPAddress.Loopback, LeagueProxy.ChatPort);
             _listener.Start();
 
             try
@@ -133,7 +133,6 @@ namespace LeaguePatchCollection
                             "<state>online</state>" +
                             "<id name='League Patch Collection' tagline='Free'/>" +
                             "<platforms><riot name='League Patch Collection' tagline='Free'/></platforms>" +
-                            "<lol name='League Patch Collection'/>" +
                             "</item>";
 
                         message = message.Insert(message.IndexOf(rosterTag, StringComparison.Ordinal) + rosterTag.Length, fakePlayer);

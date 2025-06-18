@@ -20,7 +20,7 @@ public partial class LcuNavProxy
     public async Task RunAsync(CancellationToken token)
     {
         _cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-        _listener = new TcpListener(IPAddress.Any, LeagueProxy.LcuNavigationPort);
+        _listener = new TcpListener(IPAddress.Loopback, LeagueProxy.LcuNavigationPort);
         _listener.Start();
 
         try
@@ -386,7 +386,7 @@ public partial class LcuNavProxy
     {
         var baseEndpoint = endpoint.Split('?')[0];
 
-        if (baseEndpoint == "/publishing-content/v1.0/public/client-navigation/league_client_navigation/")
+        if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobloatware && baseEndpoint == "/publishing-content/v1.0/public/client-navigation/league_client_navigation/")
         {
             string payloadStr = Encoding.UTF8.GetString(payload);
             var configObject = JsonSerializer.Deserialize<JsonNode>(payload);
@@ -420,7 +420,6 @@ public partial class LcuNavProxy
 
         return payload;
     }
-
 
     public void Stop()
     {

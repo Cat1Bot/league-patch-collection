@@ -77,7 +77,7 @@ public static class ProcessUtil
 
     public static void TerminateRiotServices()
     {
-        string[] riotProcesses = ["RiotClientServices", "LeagueClient", "vgc"];
+        string[] riotProcesses = ["RiotClientServices", "LeagueClient"];
 
         foreach (var processName in riotProcesses)
         {

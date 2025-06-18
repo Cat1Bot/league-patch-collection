@@ -20,7 +20,7 @@ public partial class LedgeProxy
     public async Task RunAsync(CancellationToken token)
     {
         _cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-        _listener = new TcpListener(IPAddress.Any, LeagueProxy.LedgePort);
+        _listener = new TcpListener(IPAddress.Loopback, LeagueProxy.LedgePort);
         _listener.Start();
 
         try
@@ -368,52 +368,45 @@ public partial class LedgeProxy
     {
         var baseEndpoint = endpoint.Split('?')[0];
 
-        if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobehavior)
+        if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Nobehavior && baseEndpoint == "/leaverbuster-ledge/restrictionInfo")
         {
-            if (baseEndpoint == "/leaverbuster-ledge/restrictionInfo")
+            string payloadStr = Encoding.UTF8.GetString(payload);
+            var configObject = JsonSerializer.Deserialize<JsonNode>(payload);
+
+            if (configObject?["rankedRestrictionEntryDto"] is JsonNode rankedRestrictionEntryDto)
             {
-                string payloadStr = Encoding.UTF8.GetString(payload);
-                var configObject = JsonSerializer.Deserialize<JsonNode>(payload);
-
-                if (configObject?["rankedRestrictionEntryDto"] is JsonNode rankedRestrictionEntryDto)
-                {
-                    rankedRestrictionEntryDto["rankedRestrictionAckNeeded"] = false;
-                }
-
-                if (configObject?["leaverBusterEntryDto"] is JsonNode leaverBusterEntryDto)
-                {
-                    leaverBusterEntryDto["preLockoutAckNeeded"] = false;
-                    leaverBusterEntryDto["onLockoutAckNeeded"] = false;
-                }
-
-                payloadStr = JsonSerializer.Serialize(configObject);
-                return Encoding.UTF8.GetBytes(payloadStr);
+                rankedRestrictionEntryDto["rankedRestrictionAckNeeded"] = false;
             }
-        }
-        if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Namebypass)
-        {
-            var namebypassPattern = @"^/summoner-ledge/v1/regions/.*/summoners/summoner-ids$";
-            if (Regex.IsMatch(baseEndpoint, namebypassPattern))
-            {
-                string payloadStr = Encoding.UTF8.GetString(payload);
-                var configObject = JsonSerializer.Deserialize<JsonNode>(payload);
 
-                if (configObject is JsonArray jsonArray)
+            if (configObject?["leaverBusterEntryDto"] is JsonNode leaverBusterEntryDto)
+            {
+                leaverBusterEntryDto["preLockoutAckNeeded"] = false;
+                leaverBusterEntryDto["onLockoutAckNeeded"] = false;
+            }
+
+            payloadStr = JsonSerializer.Serialize(configObject);
+            return Encoding.UTF8.GetBytes(payloadStr);
+        }
+        else if (LeaguePatchCollectionUX.SettingsManager.ConfigSettings.Namebypass && SummonerInfo().IsMatch(baseEndpoint))
+        {
+            string payloadStr = Encoding.UTF8.GetString(payload);
+            var configObject = JsonSerializer.Deserialize<JsonNode>(payload);
+
+            if (configObject is JsonArray jsonArray)
+            {
+                foreach (var item in jsonArray)
                 {
-                    foreach (var item in jsonArray)
+                    var summoner = item?.AsObject();
+                    if (summoner is not null)
                     {
-                        var summoner = item?.AsObject();
-                        if (summoner is not null)
-                        {
-                            summoner["nameChangeFlag"] = false;
-                            summoner["unnamed"] = false;
-                        }
+                        summoner["nameChangeFlag"] = false;
+                        summoner["unnamed"] = false;
                     }
                 }
-
-                payloadStr = JsonSerializer.Serialize(configObject);
-                return Encoding.UTF8.GetBytes(payloadStr);
             }
+
+            payloadStr = JsonSerializer.Serialize(configObject);
+            return Encoding.UTF8.GetBytes(payloadStr);
         }
 
         return payload;
@@ -436,4 +429,6 @@ public partial class LedgeProxy
     private static partial Regex ReplaceHost();
     [GeneratedRegex(@"(?<=\r\nOrigin: )[^\r\n]+")]
     private static partial Regex ReplaceOrigin();
+    [GeneratedRegex(@"^/summoner-ledge/v1/regions/.*/summoners/summoner-ids$")]
+    private static partial Regex SummonerInfo();
 }
