@@ -21,7 +21,7 @@ This app provides the following enhancements/mods:
 - :white_check_mark: **Ban Reason Checker**: Find out details on why your account was banned (eg. trigger gameId) and duration of penalty.
 - :white_check_mark: **Enhanced Privacy**: Disables all tracking and telemetry services, including Sentry, to reduce tracking and prevent unnecessary background activity.
 - :white_check_mark: **Home Hub Fix**: Fixes home hubs taking longer than usual to load issue.
-- 
+
 ##  Usage
 If you are on older version of Windows 10, you may need to install [.NET 8.0 SDK](https://dotnet.microsoft.com/en-us/download) before running the app.
 
